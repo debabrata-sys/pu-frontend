@@ -82,7 +82,8 @@ const TEMPLATE_HEADERS = [
   "academicyear", "regulation", "program", "programcode", "semester",
   "sno", "papercode", "papername", "papersettername", "papercategory",
   "address", "mainusedstatus", "atktusedstatus", "stockmonthyear",
-  "contactnumber", "submissionmode", "examinercode", "email", "papertype", "status"
+  "contactnumber", "submissionmode", "examinercode", "email", "papertype", "status",
+  "branch", "faculty", "dateoflastexam", "remarks"
 ];
 
 /* ─── Component ─────────────────────────────────────────── */
