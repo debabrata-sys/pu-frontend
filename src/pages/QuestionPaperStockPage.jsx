@@ -33,6 +33,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DownloadIcon from "@mui/icons-material/Download";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
 import MenuPageShell from "./MenuPageShell";
@@ -46,7 +48,9 @@ const BLANK = {
   regulation: "",
   program: "",
   programcode: "",
+  branch: "",
   semester: "",
+  dateoflastexam: "",
   sno: "",
   papercode: "",
   papername: "",
@@ -55,19 +59,23 @@ const BLANK = {
   address: "",
   mainusedstatus: "",
   atktusedstatus: "",
+  stockmonth: "",
+  stockyear: "",
   stockmonthyear: "",
   contactnumber: "",
-  submissionmode: "",
+  submissionmode: "Soft Copy",
   examinercode: "",
   email: "",
-  papertype: "",
-  status: "Available in soft copy"
+  papertype: "Main",
+  status: "Available Soft copy",
+  faculty: "",
+  remarks: ""
 };
 
 const CATEGORY_OPTIONS = ["A", "B", "C", "D"];
 const SUBMISSION_OPTIONS = ["Hard Copy", "Soft Copy", "Both", "Email", "Other"];
 const PAPERTYPE_OPTIONS = ["Main", "ATKT"];
-const STATUS_OPTIONS = ["Available in soft copy", "Moderated Main", "Moderated ATKT"];
+const STATUS_OPTIONS = ["Available Soft copy", "Moderated Available", "Moderated Main", "Moderated ATKT", "Used"];
 
 /* ─── Excel template headers ───────────────────────────── */
 const TEMPLATE_HEADERS = [
@@ -94,12 +102,28 @@ export default function QuestionPaperStockPage() {
   const [filterAY, setFilterAY] = useState("");
   const [filterProg, setFilterProg] = useState("");
   const [filterSem, setFilterSem] = useState("");
+  const [filterFaculty, setFilterFaculty] = useState("Mgmt");
 
   /* bulk upload state */
   const [bulkRows, setBulkRows] = useState([]);
   const [bulkError, setBulkError] = useState("");
   const [bulkSuccess, setBulkSuccess] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  /* ── Unused report state ── */
+  const [unusedRows, setUnusedRows] = useState([]);
+  const [loadingUnused, setLoadingUnused] = useState(false);
+
+  /* ── Mark as Used Dialog state ── */
+  const [markUsedDialog, setMarkUsedDialog] = useState(false);
+  const [markUsedRow, setMarkUsedRow] = useState(null);
+  const [markUsedForm, setMarkUsedForm] = useState({
+    usedtype: "Main",
+    examdate: "",
+    dateoflastexam: "",
+    remarks: ""
+  });
+  const [savingMarkUsed, setSavingMarkUsed] = useState(false);
 
   /* ── data loading ── */
   const loadData = useCallback(async () => {
@@ -122,10 +146,123 @@ export default function QuestionPaperStockPage() {
     } catch { /* ignore */ }
   }, []);
 
+  const loadUnusedReport = useCallback(async () => {
+    try {
+      setLoadingUnused(true);
+      const params = { colid: colid() };
+      if (filterAY) params.academicyear = filterAY;
+      if (filterProg) params.program = filterProg;
+      if (filterSem) params.semester = filterSem;
+      if (filterFaculty) params.faculty = filterFaculty;
+      const res = await ep1.get("/api/v2/conductexam/question-paper-stock-unused-report", { params });
+      setUnusedRows(res.data?.data || []);
+    } catch (err) {
+      console.error("Failed to load unused stock report:", err.message);
+    } finally {
+      setLoadingUnused(false);
+    }
+  }, [filterAY, filterProg, filterSem, filterFaculty]);
+
   useEffect(() => {
     loadData();
     loadOptions();
   }, [loadData, loadOptions]);
+
+  useEffect(() => {
+    if (tab === 4) {
+      loadUnusedReport();
+    }
+  }, [tab, loadUnusedReport]);
+
+  /* ── mark as used handlers ── */
+  const handleOpenMarkUsed = (row) => {
+    setMarkUsedRow(row);
+    setMarkUsedForm({
+      usedtype: row.papertype === "ATKT" ? "ATKT" : "Main",
+      examdate: "",
+      dateoflastexam: row.dateoflastexam || "",
+      remarks: row.remarks || row.examinercode || ""
+    });
+    setMarkUsedDialog(true);
+  };
+
+  const handleSaveMarkUsed = async () => {
+    if (!markUsedRow) return;
+    try {
+      setSavingMarkUsed(true);
+      await ep1.post("/api/v2/conductexam/question-paper-stock-mark-used", {
+        _id: markUsedRow._id,
+        colid: colid(),
+        usedtype: markUsedForm.usedtype,
+        examdate: markUsedForm.examdate,
+        dateoflastexam: markUsedForm.dateoflastexam,
+        remarks: markUsedForm.remarks,
+        user: global1.name || ""
+      });
+      setSuccess("Question paper stock marked successfully.");
+      setMarkUsedDialog(false);
+      loadData();
+      if (tab === 4) loadUnusedReport();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update stock status.");
+    } finally {
+      setSavingMarkUsed(false);
+    }
+  };
+
+  /* ── Excel export for Unused Stock Report matching E:/unused_stock_report.xlsx ── */
+  const handleExportUnusedExcel = () => {
+    const headerRow0 = ["Status of Unused Question Paper Stock after every Examination"];
+    const headerRow1 = ["Faculty", "", filterFaculty || "Mgmt", "", "", "", "", " -", "", "Stock Updated on ", "", new Date().toLocaleDateString("en-GB")];
+    const headerRow2 = [
+      "S No", "Program", "Scheme", "Branch/Speciality", "Year/Semester", "Date of Last Exam",
+      "Paper Code", "Month", "Year", "Category", "Main", "Suppl", "Mode", "Remark"
+    ];
+    const headerRow3 = ["", "", "", "", "", "", "", "", "", "", "", "", "Soft/Hard Copy", ""];
+
+    const list = unusedRows.length > 0 ? unusedRows : rows;
+    const dataRows = list.map((r, i) => [
+      r.sno || i + 1,
+      r.program || "",
+      r.scheme || r.academicyear || "",
+      r.branch || "N/A",
+      r.semester || "",
+      r.dateoflastexam || " -",
+      r.papercode || "",
+      r.month || (r.stockmonthyear ? r.stockmonthyear.split("-")[0] : " -"),
+      r.year || (r.stockmonthyear ? (r.stockmonthyear.includes("-") ? ("20" + r.stockmonthyear.split("-")[1]) : r.stockmonthyear) : (r.scheme || r.academicyear || " -")),
+      r.category || r.papercategory || " -",
+      r.mainusedstatus || (r.status?.includes("Main") ? r.status : "Available Main"),
+      r.atktusedstatus || (r.status?.includes("ATKT") ? r.status : "Available Suppl."),
+      r.mode || r.submissionmode || "Soft Copy",
+      r.remark || r.remarks || r.examinercode || " -"
+    ]);
+
+    const aoa = [headerRow0, headerRow1, headerRow2, headerRow3, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [
+      { s: { c: 0, r: 0 }, e: { c: 13, r: 0 } },
+      { s: { c: 0, r: 1 }, e: { c: 1, r: 1 } },
+      { s: { c: 9, r: 1 }, e: { c: 10, r: 1 } },
+      { s: { c: 0, r: 2 }, e: { c: 0, r: 3 } },
+      { s: { c: 1, r: 2 }, e: { c: 1, r: 3 } },
+      { s: { c: 2, r: 2 }, e: { c: 2, r: 3 } },
+      { s: { c: 3, r: 2 }, e: { c: 3, r: 3 } },
+      { s: { c: 4, r: 2 }, e: { c: 4, r: 3 } },
+      { s: { c: 5, r: 2 }, e: { c: 5, r: 3 } },
+      { s: { c: 6, r: 2 }, e: { c: 6, r: 3 } },
+      { s: { c: 7, r: 2 }, e: { c: 7, r: 3 } },
+      { s: { c: 8, r: 2 }, e: { c: 8, r: 3 } },
+      { s: { c: 9, r: 2 }, e: { c: 9, r: 3 } },
+      { s: { c: 10, r: 2 }, e: { c: 10, r: 3 } },
+      { s: { c: 11, r: 2 }, e: { c: 11, r: 3 } },
+      { s: { c: 13, r: 2 }, e: { c: 13, r: 3 } }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "UnusedStockReport");
+    XLSX.writeFile(wb, "unused_question_paper_stock_report.xlsx");
+  };
 
   /* ── form helpers ── */
   const handleFormChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -136,7 +273,9 @@ export default function QuestionPaperStockPage() {
       regulation: row.regulation || "",
       program: row.program || "",
       programcode: row.programcode || "",
+      branch: row.branch || "",
       semester: row.semester || "",
+      dateoflastexam: row.dateoflastexam || "",
       sno: row.sno || "",
       papercode: row.papercode || "",
       papername: row.papername || "",
@@ -145,13 +284,17 @@ export default function QuestionPaperStockPage() {
       address: row.address || "",
       mainusedstatus: row.mainusedstatus || "",
       atktusedstatus: row.atktusedstatus || "",
+      stockmonth: row.stockmonth || "",
+      stockyear: row.stockyear || "",
       stockmonthyear: row.stockmonthyear || "",
       contactnumber: row.contactnumber || "",
       submissionmode: row.submissionmode || "",
       examinercode: row.examinercode || "",
       email: row.email || "",
       papertype: row.papertype || "",
-      status: row.status || "Available in soft copy"
+      status: row.status || "Available Soft copy",
+      faculty: row.faculty || "",
+      remarks: row.remarks || ""
     });
     setEditId(row._id);
     setTab(1);
@@ -220,7 +363,16 @@ export default function QuestionPaperStockPage() {
     { field: "papercode", headerName: "Paper Code", width: 110 },
     { field: "papername", headerName: "Paper Name", width: 220, flex: 1 },
     { field: "papertype", headerName: "Paper Type", width: 100 },
-    { field: "status", headerName: "Status", width: 180 },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 170,
+      renderCell: (params) => {
+        const val = params.value || "Available Soft copy";
+        const color = val.includes("Used") ? "success" : val.includes("Moderated") ? "secondary" : "info";
+        return <Chip label={val} color={color} size="small" variant="outlined" sx={{ fontWeight: 600 }} />;
+      }
+    },
     { field: "papersettername", headerName: "Paper Setter", width: 160 },
     { field: "examinercode", headerName: "Examiner Code", width: 120 },
     { field: "papercategory", headerName: "Category", width: 80 },
@@ -231,11 +383,16 @@ export default function QuestionPaperStockPage() {
     {
       field: "_actions",
       headerName: "Actions",
-      width: 100,
+      width: 135,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
         <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Mark as Used / Update Status">
+            <IconButton size="small" color="success" onClick={() => handleOpenMarkUsed(params.row)}>
+              <EventAvailableIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Edit">
             <IconButton size="small" color="primary" onClick={() => handleEdit(params.row)}>
               <EditIcon fontSize="small" />
@@ -406,6 +563,109 @@ export default function QuestionPaperStockPage() {
     </div>
   );
 
+  /* ── Render Unused Stock Report Print Area ── */
+  const renderUnusedPrintArea = () => {
+    const list = unusedRows.length > 0 ? unusedRows : rows;
+    const today = new Date().toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }).replace(/\//g, ".");
+
+    return (
+      <div id="qps-unused-print-area">
+        <Box sx={{ mb: 2 }}>
+          <table className="qps-table" style={{ width: "100%", marginBottom: 0 }}>
+            <thead>
+              <tr>
+                <th
+                  colSpan={14}
+                  style={{
+                    backgroundColor: "#ffff00",
+                    fontWeight: 900,
+                    fontSize: "13px",
+                    padding: "6px",
+                    textAlign: "center",
+                    textTransform: "uppercase"
+                  }}
+                >
+                  Status of Unused Question Paper Stock after every Examination
+                </th>
+              </tr>
+              <tr style={{ backgroundColor: "#ffff00" }}>
+                <th colSpan={2} style={{ textAlign: "left", paddingLeft: "8px", fontWeight: "bold" }}>
+                  Faculty
+                </th>
+                <th colSpan={5} style={{ textAlign: "left", paddingLeft: "8px", fontWeight: "bold" }}>
+                  {filterFaculty || "Mgmt"}
+                </th>
+                <th colSpan={3} style={{ textAlign: "center", fontWeight: "bold" }}>
+                  -
+                </th>
+                <th colSpan={2} style={{ textAlign: "right", paddingRight: "8px", fontWeight: "bold" }}>
+                  Stock Updated on
+                </th>
+                <th colSpan={2} style={{ textAlign: "center", fontWeight: "bold" }}>
+                  {today}
+                </th>
+              </tr>
+              <tr style={{ backgroundColor: "#ffff00" }}>
+                <th rowSpan={2} style={{ width: 35 }}>S No</th>
+                <th rowSpan={2} style={{ minWidth: 100 }}>Program</th>
+                <th rowSpan={2} style={{ width: 65 }}>Scheme</th>
+                <th rowSpan={2} style={{ minWidth: 90 }}>Branch/Speciality</th>
+                <th rowSpan={2} style={{ width: 75 }}>Year/Semester</th>
+                <th rowSpan={2} style={{ width: 85 }}>Date of Last Exam</th>
+                <th rowSpan={2} style={{ width: 75 }}>Paper Code</th>
+                <th rowSpan={2} style={{ width: 50 }}>Month</th>
+                <th rowSpan={2} style={{ width: 55 }}>Year</th>
+                <th rowSpan={2} style={{ width: 60 }}>Category</th>
+                <th rowSpan={2} style={{ minWidth: 90 }}>Main</th>
+                <th rowSpan={2} style={{ minWidth: 90 }}>Suppl</th>
+                <th style={{ minWidth: 90 }}>Mode</th>
+                <th rowSpan={2} style={{ minWidth: 100 }}>Remark</th>
+              </tr>
+              <tr style={{ backgroundColor: "#ffff00" }}>
+                <th style={{ fontSize: "9px" }}>Soft/Hard Copy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((row, idx) => {
+                const month = row.month || (row.stockmonthyear ? row.stockmonthyear.split("-")[0] : " -");
+                const year = row.year || (row.stockmonthyear ? (row.stockmonthyear.includes("-") ? ("20" + row.stockmonthyear.split("-")[1]) : row.stockmonthyear) : (row.scheme || row.academicyear || " -"));
+                return (
+                  <tr key={row._id || idx}>
+                    <td>{row.sno || idx + 1}</td>
+                    <td className="left">{row.program || ""}</td>
+                    <td>{row.scheme || row.academicyear || ""}</td>
+                    <td className="left">{row.branch || "N/A"}</td>
+                    <td>{row.semester || ""}</td>
+                    <td>{row.dateoflastexam || " -"}</td>
+                    <td>{row.papercode || ""}</td>
+                    <td>{month}</td>
+                    <td>{year}</td>
+                    <td>{row.category || row.papercategory || " -"}</td>
+                    <td>{row.mainusedstatus || (row.status?.includes("Main") ? row.status : "Available Main")}</td>
+                    <td>{row.atktusedstatus || (row.status?.includes("ATKT") ? row.status : "Available Suppl.")}</td>
+                    <td>{row.mode || row.submissionmode || "Soft Copy"}</td>
+                    <td className="left">{row.remark || row.remarks || row.examinercode || " -"}</td>
+                  </tr>
+                );
+              })}
+              {list.length === 0 && (
+                <tr>
+                  <td colSpan={14} style={{ padding: "20px", color: "#666" }}>
+                    No unused stock records found for the selected criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </Box>
+      </div>
+    );
+  };
+
   /* ─────────────────── JSX ─────────────────── */
   return (
     <MenuPageShell title="Question Paper Stock">
@@ -456,7 +716,7 @@ export default function QuestionPaperStockPage() {
               margin: 0 !important;
               background: transparent !important;
             }
-            #qps-print-area {
+            #qps-print-area, #qps-unused-print-area {
               display: block !important;
               visibility: visible !important;
               width: 100% !important;
@@ -464,7 +724,7 @@ export default function QuestionPaperStockPage() {
               margin: 0 !important;
               padding: 0 !important;
             }
-            #qps-print-area * {
+            #qps-print-area *, #qps-unused-print-area * {
               visibility: visible !important;
             }
             .page-break {
@@ -502,8 +762,9 @@ export default function QuestionPaperStockPage() {
             <Stack direction="row" spacing={1} flexWrap="wrap">
               <Button variant="contained" startIcon={<AddIcon />} onClick={() => { handleClearForm(); setTab(1); }}>Add Entry</Button>
               <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => setTab(2)}>Bulk Upload</Button>
+              <Button variant="outlined" startIcon={<InventoryIcon />} onClick={() => setTab(4)}>Unused Stock Report</Button>
               <Button variant="outlined" startIcon={<PrintIcon />} color="error" onClick={handlePrint}>Print Report</Button>
-              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadData} disabled={loading}>Refresh</Button>
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => { loadData(); if (tab === 4) loadUnusedReport(); }} disabled={loading}>Refresh</Button>
             </Stack>
           </Stack>
           {loading && <LinearProgress sx={{ mt: 1.5 }} />}
@@ -522,7 +783,8 @@ export default function QuestionPaperStockPage() {
             <Tab label="📋 Records List" />
             <Tab label="➕ Add / Edit Entry" />
             <Tab label="📤 Bulk Upload" />
-            <Tab label="📊 Stock Report" />
+            <Tab label="📊 Stock Register" />
+            <Tab label="📑 Unused Stock Report" />
           </Tabs>
 
           {/* ── Tab 0: List ── */}
@@ -629,6 +891,18 @@ export default function QuestionPaperStockPage() {
                     {STATUS_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                   </TextField>
                 </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth size="small" label="Branch / Speciality" value={form.branch} onChange={handleFormChange("branch")} placeholder="Management" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth size="small" label="Faculty" value={form.faculty} onChange={handleFormChange("faculty")} placeholder="Mgmt" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth size="small" label="Date of Last Exam" value={form.dateoflastexam} onChange={handleFormChange("dateoflastexam")} placeholder="26.07.2021" />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth size="small" label="Remarks" value={form.remarks} onChange={handleFormChange("remarks")} placeholder="Optional remarks" />
+                </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <TextField fullWidth size="small" label="Stock Month/Year" value={form.stockmonthyear} onChange={handleFormChange("stockmonthyear")} placeholder="Jan-22" />
                 </Grid>
@@ -706,7 +980,7 @@ export default function QuestionPaperStockPage() {
             </Box>
           )}
 
-          {/* ── Tab 3: Stock Report ── */}
+          {/* ── Tab 3: Stock Register Report ── */}
           {tab === 3 && (
             <Box sx={{ p: 2 }}>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap" className="screen-only">
@@ -729,13 +1003,129 @@ export default function QuestionPaperStockPage() {
             </Box>
           )}
 
-          {/* When not on Tab 3, render print area for print media */}
-          {tab !== 3 && (
+          {/* ── Tab 4: Unused Stock Report ── */}
+          {tab === 4 && (
+            <Box sx={{ p: 2 }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap" className="screen-only">
+                <TextField select label="Academic Year" size="small" value={filterAY} onChange={(e) => setFilterAY(e.target.value)} sx={{ minWidth: 140 }}>
+                  <MenuItem value="">All Years</MenuItem>
+                  {uniq(rows.map((r) => r.academicyear)).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+                </TextField>
+                <TextField select label="Program" size="small" value={filterProg} onChange={(e) => setFilterProg(e.target.value)} sx={{ minWidth: 180 }}>
+                  <MenuItem value="">All Programs</MenuItem>
+                  {uniq(rows.map((r) => r.program)).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+                </TextField>
+                <TextField select label="Semester" size="small" value={filterSem} onChange={(e) => setFilterSem(e.target.value)} sx={{ minWidth: 130 }}>
+                  <MenuItem value="">All Semesters</MenuItem>
+                  {uniq(rows.map((r) => r.semester)).map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+                </TextField>
+                <TextField
+                  label="Faculty"
+                  size="small"
+                  value={filterFaculty}
+                  onChange={(e) => setFilterFaculty(e.target.value)}
+                  placeholder="e.g. Mgmt, Engg"
+                  sx={{ minWidth: 130 }}
+                />
+                <Button variant="contained" color="error" startIcon={<PrintIcon />} onClick={handlePrint}>
+                  Print Unused Report
+                </Button>
+                <Button variant="outlined" color="success" startIcon={<DownloadIcon />} onClick={handleExportUnusedExcel}>
+                  Export to Excel
+                </Button>
+                <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadUnusedReport} disabled={loadingUnused}>
+                  Refresh
+                </Button>
+              </Stack>
+
+              {loadingUnused && <LinearProgress sx={{ mb: 2 }} className="screen-only" />}
+
+              {renderUnusedPrintArea()}
+            </Box>
+          )}
+
+          {/* When not on Tab 3 or Tab 4, render print area for print media */}
+          {tab !== 3 && tab !== 4 && (
             <div className="print-only">
               {renderPrintArea()}
             </div>
           )}
         </Paper>
+
+        {/* ── Mark as Used Dialog ── */}
+        <Dialog open={markUsedDialog} onClose={() => setMarkUsedDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+            Mark Question Paper Stock Usage
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2.5 }}>
+            {markUsedRow && (
+              <Stack spacing={2.5} sx={{ mt: 1 }}>
+                <Box sx={{ p: 1.5, bgcolor: "#f1f5f9", borderRadius: 1.5 }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="#1e293b">
+                    {markUsedRow.papercode ? `[${markUsedRow.papercode}] ` : ""}{markUsedRow.papername}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Program: {markUsedRow.program} &bull; Sem: {markUsedRow.semester} &bull; Setter: {markUsedRow.papersettername || "N/A"}
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
+                    <Typography variant="caption" fontWeight={600}>Current Status:</Typography>
+                    <Chip label={markUsedRow.status || "Available Soft copy"} size="small" color={markUsedRow.status === "Used" ? "default" : "primary"} />
+                  </Stack>
+                </Box>
+
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Usage Type *"
+                  value={markUsedForm.usedtype}
+                  onChange={(e) => setMarkUsedForm((prev) => ({ ...prev, usedtype: e.target.value }))}
+                >
+                  <MenuItem value="Main">Main Exam (Mark as Used in Main)</MenuItem>
+                  <MenuItem value="ATKT">ATKT / Supplementary Exam (Mark as Used in ATKT)</MenuItem>
+                  <MenuItem value="Both">Both Main &amp; ATKT Exam (Mark Used in Both)</MenuItem>
+                  <MenuItem value="Unused">Reset to Unused / Available Soft copy</MenuItem>
+                </TextField>
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Exam Session / Month-Year"
+                  placeholder="e.g. Sep, 2020 or Nov 2023"
+                  value={markUsedForm.examdate}
+                  onChange={(e) => setMarkUsedForm((prev) => ({ ...prev, examdate: e.target.value }))}
+                  helperText="Session when the paper was consumed/examined"
+                />
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Date of Last Exam"
+                  placeholder="e.g. 26.07.2021"
+                  value={markUsedForm.dateoflastexam}
+                  onChange={(e) => setMarkUsedForm((prev) => ({ ...prev, dateoflastexam: e.target.value }))}
+                />
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Remarks"
+                  multiline
+                  rows={2}
+                  placeholder="Optional notes or examiner reference"
+                  value={markUsedForm.remarks}
+                  onChange={(e) => setMarkUsedForm((prev) => ({ ...prev, remarks: e.target.value }))}
+                />
+              </Stack>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 2, borderTop: "1px solid #e2e8f0" }}>
+            <Button onClick={() => setMarkUsedDialog(false)} disabled={savingMarkUsed}>Cancel</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveMarkUsed} disabled={savingMarkUsed}>
+              {savingMarkUsed ? "Saving..." : "Save Usage Status"}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* ── Delete confirmation dialog ── */}
         <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
