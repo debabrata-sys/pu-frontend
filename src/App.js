@@ -1220,10 +1220,20 @@ import {
 } from "./pages/ConductExam2ModeratorPanelPages";
 import ConductExam2ModerationPage from "./pages/ConductExam2ModerationPage";
 import ConductExam2ReviewPapersPage from "./pages/ConductExam2ReviewPapersPage";
-import { ConductExam2ModeratorPaymentPage, ConductExam2PaperSetterPaymentPage } from "./pages/ConductExam2StaffPaymentPages";
+import { ConductExam2ExaminerPaymentPage, ConductExam2ModeratorPaymentPage, ConductExam2PaperSetterPaymentPage } from "./pages/ConductExam2StaffPaymentPages";
 import ConductExam2RemunerationPaymentPage from "./pages/ConductExam2RemunerationPaymentPage";
 import ConductExam2RemunerationBillPrint from "./pages/ConductExam2RemunerationBillPrint";
 import ConductExam2RemunerationReportPrint from "./pages/ConductExam2RemunerationReportPrint";
+import ConductExam2ExaminerListPage from "./pages/ConductExam2ExaminerListPage";
+import ConductExam2ExaminerLetterPage from "./pages/ConductExam2ExaminerLetterPage";
+import ConductExam2ExaminerAllotmentPage from "./pages/ConductExam2ExaminerAllotmentPage";
+import ConductExam2ExaminerAllotmentReportPage from "./pages/ConductExam2ExaminerAllotmentReportPage";
+import ConductExam2ExaminerMarksEntryPage from "./pages/ConductExam2ExaminerMarksEntryPage";
+import ConductExam2ComponentwiseAllocationPage from "./pages/ConductExam2ComponentwiseAllocationPage";
+import ConductExam2ComponentwiseMarksPage from "./pages/ConductExam2ComponentwiseMarksPage";
+import { ConductExam2DaywiseMarksMonitoringPage, ConductExam2ExaminerReassignmentPage, ConductExam2MarksEntryMonitoringPage } from "./pages/ConductExam2ComponentMonitoringPages";
+import { ConductExam2OnScreenMarkingPage, ConductExam2ScoreRulePage } from "./pages/ConductExam2OnScreenMarkingPages";
+import ConductExam2AnswerBookUploadPage from "./pages/ConductExam2AnswerBookUploadPage";
 import ConductExamStockConfigurationPage from "./pages/ConductExamStockConfigurationPage";
 import ConductExamStockEntryPage from "./pages/ConductExamStockEntryPage";
 import ConductExamStockIssueReceivePage from "./pages/ConductExamStockIssueReceivePage";
@@ -4325,6 +4335,20 @@ function App() {
         <Route path="/conduct-exam-2-remuneration-payment" element={<ConductExam2RemunerationPaymentPage />} />
         <Route path="/conduct-exam-2-remuneration-bill/:id" element={<ConductExam2RemunerationBillPrint />} />
         <Route path="/conduct-exam-2-remuneration-report" element={<ConductExam2RemunerationReportPrint />} />
+        <Route path="/conduct-exam-2-examiner-list" element={<ConductExam2ExaminerListPage />} />
+        <Route path="/conduct-exam-2-examiner-letter" element={<ConductExam2ExaminerLetterPage />} />
+        <Route path="/conduct-exam-2-examiner-allotment" element={<ConductExam2ExaminerAllotmentPage />} />
+        <Route path="/conduct-exam-2-componentwise-allocation" element={<ConductExam2ComponentwiseAllocationPage />} />
+        <Route path="/conduct-exam-2-examiner-allotment-report" element={<ConductExam2ExaminerAllotmentReportPage />} />
+        <Route path="/conduct-exam-2-examiner-marks-entry" element={<ConductExam2ExaminerMarksEntryPage />} />
+        <Route path="/conduct-exam-2-componentwise-marks" element={<ConductExam2ComponentwiseMarksPage />} />
+        <Route path="/conduct-exam-2-marks-entry-monitoring" element={<ConductExam2MarksEntryMonitoringPage />} />
+        <Route path="/conduct-exam-2-examiner-monitoring" element={<ConductExam2DaywiseMarksMonitoringPage />} />
+        <Route path="/conduct-exam-2-examiner-reassignment" element={<ConductExam2ExaminerReassignmentPage />} />
+        <Route path="/conduct-exam-2-score-rule" element={<ConductExam2ScoreRulePage />} />
+        <Route path="/conduct-exam-2-on-screen-marking" element={<ConductExam2OnScreenMarkingPage />} />
+        <Route path="/conduct-exam-2-answer-book-upload" element={<ConductExam2AnswerBookUploadPage />} />
+        <Route path="/conduct-exam-2-examiner-payment" element={<ConductExam2ExaminerPaymentPage />} />
         <Route path="/conduct-exam-stock-configuration" element={<ConductExamStockConfigurationPage />} />
         <Route path="/conduct-exam-stock-entry" element={<ConductExamStockEntryPage />} />
         <Route path="/conduct-exam-stock-issue-receive" element={<ConductExamStockIssueReceivePage />} />

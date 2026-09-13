@@ -101,14 +101,14 @@ export default function ExamAcceptanceDialog({
 
   useEffect(() => {
     if (!open) return;
-    const name = assignment?.papersettername || assignment?.moderatorname || userProfile?.name || '';
-    const email = assignment?.papersetteremail || assignment?.moderatoremail || userProfile?.email || '';
+    const name = assignment?.examinername || assignment?.papersettername || assignment?.moderatorname || userProfile?.name || '';
+    const email = assignment?.examineremail || assignment?.papersetteremail || assignment?.moderatoremail || userProfile?.email || '';
     const phone = userProfile?.phone || '';
-    const desig = userProfile?.designation || (role === 'moderator' ? 'Moderator' : 'Paper Setter');
+    const desig = userProfile?.designation || (role === 'moderator' ? 'Moderator' : role === 'evaluator' ? 'Evaluator' : 'Paper Setter');
     const qual = userProfile?.degree || 'Post Graduate / Ph.D';
     const dept = userProfile?.department || assignment?.subject || assignment?.course || 'Academics';
     const address = [userProfile?.address, userProfile?.city, userProfile?.state].filter(Boolean).join(', ');
-    const code = assignment?.coursecode ? `${assignment.coursecode}-${role === 'moderator' ? 'MOD' : 'PS'}` : '';
+    const code = assignment?.coursecode ? `${assignment.coursecode}-${role === 'moderator' ? 'MOD' : role === 'evaluator' ? 'EV' : 'PS'}` : '';
     const instName = effectiveInst.institutionname || "INSTITUTION NAME";
     const prefix = instName.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'EXAM';
 
@@ -175,13 +175,14 @@ export default function ExamAcceptanceDialog({
       setError('');
       setSuccessMsg('');
 
-      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-accept' : 'papersetter-accept'}`;
-      const idField = role === 'moderator' ? 'moderatorid' : 'papersetterid';
+      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-accept' : role === 'evaluator' ? 'evaluator-accept' : 'papersetter-accept'}`;
+      const idField = role === 'moderator' ? 'moderatorid' : role === 'evaluator' ? 'examinerid' : 'papersetterid';
       const idVal = assignment?._id;
 
       const payload = {
         colid: global1.colid,
         [idField]: idVal,
+        examineremail: assignment?.examineremail || global1.user,
         acceptancedata: {
           ...formData,
           certifications
@@ -194,7 +195,7 @@ export default function ExamAcceptanceDialog({
       if (res.data?.success) {
         setSuccessMsg('Acceptance form submitted and verified successfully!');
         if (onAccepted) {
-          onAccepted(res.data.setter || res.data.moderator);
+          onAccepted(res.data.setter || res.data.moderator || res.data.examiner || res.data);
         }
       } else {
         setError(res.data?.message || 'Failed to submit acceptance form.');
@@ -212,7 +213,7 @@ export default function ExamAcceptanceDialog({
 
   const insName = effectiveInst.institutionname || "PEOPLE'S UNIVERSITY";
   const logoSrc = effectiveInst.logo || '';
-  const roleLabel = role === 'moderator' ? 'Moderator' : 'Paper Setter';
+  const roleLabel = role === 'moderator' ? 'Moderator' : role === 'evaluator' ? 'Evaluator' : 'Paper Setter';
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">

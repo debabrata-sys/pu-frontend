@@ -18,7 +18,8 @@ import {
   Typography
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
-import { Delete, Edit, Logout, Refresh, Save } from "@mui/icons-material";
+import { Delete, Download, Edit, Logout, Refresh, Save, UploadFile } from "@mui/icons-material";
+import * as XLSX from "xlsx";
 import MenuPageShell from "./MenuPageShell";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -66,6 +67,7 @@ export default function UserProfileLayoutPage() {
   const [form, setForm] = useState(blank);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -112,6 +114,94 @@ export default function UserProfileLayoutPage() {
       setError(err.response?.data?.msg || "Unable to save profile layout");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const sampleRows = [
+      {
+        role: "Student",
+        field: "name",
+        label: "Full Name",
+        source: "user",
+        tab: "Profile",
+        taborder: 0,
+        order: 1,
+        editable: "No",
+        visible: "Yes",
+        type: "text",
+        options: ""
+      },
+      {
+        role: "Student",
+        field: "gender",
+        label: "Gender",
+        source: "user",
+        tab: "Profile",
+        taborder: 0,
+        order: 2,
+        editable: "Yes",
+        visible: "Yes",
+        type: "dropdown",
+        options: "Male, Female, Not specified"
+      },
+      {
+        role: "Faculty",
+        field: "designation",
+        label: "Designation",
+        source: "user",
+        tab: "Employment",
+        taborder: 1,
+        order: 1,
+        editable: "No",
+        visible: "Yes",
+        type: "text",
+        options: ""
+      }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Profile Layouts");
+    XLSX.writeFile(workbook, "user_profile_layout_template.xlsx");
+  };
+
+  const handleBulkUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+    setMessage("");
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const uploadRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!uploadRows.length) {
+        setError("The uploaded file is empty or has no valid rows.");
+        return;
+      }
+
+      const res = await ep1.post("/api/v2/user-profile-layouts-bulk", {
+        colid: global1.colid,
+        user: global1.user,
+        rows: uploadRows
+      });
+
+      const errors = res.data?.errors || [];
+      const saved = res.data?.saved || 0;
+      setMessage(`Bulk upload completed. Saved/updated: ${saved}${errors.length ? `, errors: ${errors.length}` : ""}.`);
+      if (errors.length) {
+        setError(errors.slice(0, 10).map((e) => `Row ${e.row}: ${e.message}`).join(" | ") + (errors.length > 10 ? ` ...and ${errors.length - 10} more errors` : ""));
+      }
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.msg || err.response?.data?.message || "Unable to bulk upload profile layouts");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -189,7 +279,24 @@ export default function UserProfileLayoutPage() {
             <Grid item xs={12} md={2}><FormControl fullWidth><InputLabel>Visible</InputLabel><Select label="Visible" value={form.visible} onChange={(e) => setForm({ ...form, visible: e.target.value })}><MenuItem value="Yes">Yes</MenuItem><MenuItem value="No">No</MenuItem></Select></FormControl></Grid>
             <Grid item xs={12} md={2}><TextField select fullWidth label="Type" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>{["text", "number", "date", "dropdown", "textarea", "email", "phone"].map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
             <Grid item xs={12} md={5}><TextField fullWidth label="Options" value={form.options} onChange={(e) => setForm({ ...form, options: e.target.value })} helperText="Comma separated for dropdown fields" /></Grid>
-            <Grid item xs={12} md={3}><Stack direction="row" spacing={1}><Button variant="contained" startIcon={<Save />} disabled={saving} onClick={save}>{saving ? "Saving..." : "Save"}</Button><Button variant="outlined" onClick={reset}>Cancel</Button><Button variant="outlined" startIcon={<Refresh />} onClick={load}>Refresh</Button></Stack></Grid>
+            <Grid item xs={12}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1}>
+                  <Button variant="contained" startIcon={<Save />} disabled={saving || uploading} onClick={save}>{saving ? "Saving..." : "Save"}</Button>
+                  <Button variant="outlined" onClick={reset}>Cancel</Button>
+                  <Button variant="outlined" startIcon={<Refresh />} onClick={load}>Refresh</Button>
+                </Stack>
+                <Stack direction="row" spacing={1}>
+                  <Button variant="outlined" color="primary" startIcon={<Download />} onClick={downloadTemplate}>
+                    Download Template
+                  </Button>
+                  <Button variant="contained" color="secondary" component="label" startIcon={<UploadFile />} disabled={uploading}>
+                    {uploading ? "Uploading..." : "Bulk Upload"}
+                    <input hidden type="file" accept=".xlsx,.xls,.csv" onChange={handleBulkUpload} />
+                  </Button>
+                </Stack>
+              </Stack>
+            </Grid>
           </Grid>
         </Paper>
         <Paper sx={{ height: 620 }}>

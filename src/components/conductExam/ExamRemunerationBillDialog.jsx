@@ -52,12 +52,13 @@ export default function ExamRemunerationBillDialog({
     try {
       setLoading(true);
       setError('');
-      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-remuneration-bill' : 'papersetter-remuneration-bill'}`;
-      const idParam = role === 'moderator' ? 'moderatorid' : 'papersetterid';
+      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-remuneration-bill' : role === 'evaluator' ? 'evaluator-remuneration-bill' : 'papersetter-remuneration-bill'}`;
+      const idParam = role === 'moderator' ? 'moderatorid' : role === 'evaluator' ? 'examinerid' : 'papersetterid';
       const res = await ep1.get(endpoint, {
         params: {
           colid: global1.colid,
-          [idParam]: assignmentId
+          [idParam]: assignmentId,
+          examineremail: global1.user
         }
       });
       if (res.data?.success) {
@@ -85,11 +86,12 @@ export default function ExamRemunerationBillDialog({
     try {
       setSavingBank(true);
       setBankSuccess('');
-      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-bank-details' : 'papersetter-bank-details'}`;
-      const idField = role === 'moderator' ? 'moderatorid' : 'papersetterid';
+      const endpoint = `${apiPrefix}/${role === 'moderator' ? 'moderator-bank-details' : role === 'evaluator' ? 'evaluator-bank-details' : 'papersetter-bank-details'}`;
+      const idField = role === 'moderator' ? 'moderatorid' : role === 'evaluator' ? 'examinerid' : 'papersetterid';
       const res = await ep1.post(endpoint, {
         colid: global1.colid,
         [idField]: assignmentId,
+        examineremail: global1.user,
         bankdetails: bankForm,
         user: global1.user
       });
@@ -445,18 +447,37 @@ export default function ExamRemunerationBillDialog({
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Setting of Questions Papers/Translation/Moderation</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>{bill.quantity || 1}</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>{bill.rate ? money(bill.rate) : ''}</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>Rs. {grandTotal}</td>
-                </tr>
-                <tr>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Evaluation / Revaluation/Retotaling of answer book/thesis</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>-</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>-</td>
-                  <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>-</td>
-                </tr>
+                {role === 'evaluator' || bill?.nature_of_work?.toLowerCase().includes('evaluat') ? (
+                  <>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Setting of Questions Papers/Translation/Moderation</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>-</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>-</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>-</td>
+                    </tr>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Evaluation / Revaluation/Retotaling of answer book/thesis</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>{bill.quantity || 1}</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>{bill.rate ? money(bill.rate) : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>Rs. {grandTotal}</td>
+                    </tr>
+                  </>
+                ) : (
+                  <>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Setting of Questions Papers/Translation/Moderation</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>{bill.quantity || 1}</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>{bill.rate ? money(bill.rate) : ''}</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>Rs. {grandTotal}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Evaluation / Revaluation/Retotaling of answer book/thesis</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>-</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right' }}>-</td>
+                      <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'right', fontWeight: 'bold' }}>-</td>
+                    </tr>
+                  </>
+                )}
                 <tr>
                   <td style={{ border: '1px solid #000', padding: '3.5px 6px' }}>Practical/Clinical Examination/Viva-Voce/Misc.</td>
                   <td style={{ border: '1px solid #000', padding: '3.5px 6px', textAlign: 'center' }}>-</td>

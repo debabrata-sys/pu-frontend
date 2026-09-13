@@ -61,9 +61,9 @@ export default function ExamDeclarationDialog({
   // Format Month & Year from exam date or current date
   const examMonthYear = assignment?.examMonthYear || assignment?.examdate || `${new Date().toLocaleString('en-US', { month: 'long' })} ${new Date().getFullYear()}`;
 
-  const examinerCode = existingDeclaration.examinercode || assignment?.examinercode || (paperCode ? `${paperCode}-${role === 'moderator' ? 'MOD' : 'PS'}` : '');
+  const examinerCode = existingDeclaration.examinercode || assignment?.examinercode || (paperCode ? `${paperCode}-${role === 'moderator' ? 'MOD' : role === 'evaluator' ? 'EV' : 'PS'}` : '');
   const examinerName = existingDeclaration.examinername || assignment?.papersettername || assignment?.moderatorname || assignment?.examinername || userProfile?.name || 'Examiner';
-  const designation = existingDeclaration.designation || assignment?.designation || userProfile?.designation || (role === 'moderator' ? 'Moderator' : 'Paper Setter');
+  const designation = existingDeclaration.designation || assignment?.designation || userProfile?.designation || (role === 'moderator' ? 'Moderator' : role === 'evaluator' ? 'Evaluator' : 'Paper Setter');
   const workingInstitute = existingDeclaration.institute || assignment?.working_institute || assignment?.institute || userProfile?.college || userProfile?.institute || effectiveInst.institutionname || 'Affiliated Institution';
 
   const insName = effectiveInst.institutionname || "INSTITUTION NAME";
@@ -109,7 +109,7 @@ export default function ExamDeclarationDialog({
     window.print();
   };
 
-  const roleLabel = role === 'moderator' ? 'Moderator' : 'Paper Setter';
+  const roleLabel = role === 'moderator' ? 'Moderator' : role === 'evaluator' ? 'Evaluator' : 'Paper Setter';
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">

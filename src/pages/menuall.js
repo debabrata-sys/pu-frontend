@@ -3216,6 +3216,111 @@ export function menuitemsall() {
         </AccordionDetails>
       </Accordion>
       <Accordion>
+        <AccordionSummary aria-controls="panel-evaluator-management-2-content" id="panel-evaluator-management-2-header">
+          <AssignmentTurnedInIcon sx={{ marginRight: 1 }} />
+          {open && <Typography sx={{ fontSize: 14 }}>Evaluator management 2</Typography>}
+        </AccordionSummary>
+        <AccordionDetails>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-list">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Examiner list" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-letter">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Generate examiner letter" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-allotment">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Examiner allotment" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-componentwise-allocation">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Componentwise allocation" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-allotment-report">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Examiner allotment report" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-marks-entry">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Examiner marks entry" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-componentwise-marks">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Componentwise marks" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-marks-entry-monitoring">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Marks entry monitoring" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-monitoring">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Examiner monitoring" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-examiner-reassignment">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Examiner reassignment" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-score-rule">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Exam score rule" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-on-screen-marking">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="On Screen Marking" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-answer-book-upload">
+            <ListItemIcon>
+              <BookIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Upload student answer book" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-remuneration-payment">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Evaluator payment & bill" />}
+          </ListItem>
+        </AccordionDetails>
+      </Accordion>
+      <Accordion>
         <AccordionSummary aria-controls="panel-invigilation-management-content" id="panel-invigilation-management-header">
           <ApprovalIcon sx={{ marginRight: 1 }} />
           {open && <Typography sx={{ fontSize: 14 }}>Invigilation management</Typography>}
