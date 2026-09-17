@@ -1479,9 +1479,9 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
         return (
           <Box sx={{ py: 0.5 }}>
             <Chip
-              label={daysRemainingText || `${daysRemaining} Days Left`}
+              label={daysRemainingText || (daysRemaining !== null && daysRemaining !== undefined ? `${daysRemaining} Day${daysRemaining !== 1 ? "s" : ""} Left` : "Active")}
               size="small"
-              color={isOverdue ? "error" : daysRemaining <= 2 ? "warning" : "success"}
+              color={isOverdue ? "error" : (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= 2) ? "warning" : "success"}
               sx={{ fontWeight: 800, height: 24, fontSize: "0.75rem" }}
             />
             {(startdate || enddate) && (
