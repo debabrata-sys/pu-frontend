@@ -38,7 +38,8 @@ export default function ConductExam2AwardListPage() {
     academicyear: searchParams.get("academicyear") || "",
     examcode: searchParams.get("examcode") || "",
     programcode: searchParams.get("programcode") || "",
-    coursecode: searchParams.get("coursecode") || ""
+    coursecode: searchParams.get("coursecode") || "",
+    valuationtype: searchParams.get("valuationtype") || "V1"
   });
 
   const [reportData, setReportData] = useState(null);
@@ -79,12 +80,14 @@ export default function ConductExam2AwardListPage() {
         const defaultExam = searchParams.get("examcode") || res.data.exams?.[0]?.examcode || "";
         const defaultCourse = searchParams.get("coursecode") || res.data.courses?.[0]?.coursecode || "";
         const defaultProgram = searchParams.get("programcode") || res.data.programs?.[0]?.programcode || "";
+        const defaultValuationType = searchParams.get("valuationtype") || "V1";
 
         const initialFilters = {
           academicyear: defaultYear,
           examcode: defaultExam,
           programcode: defaultProgram,
-          coursecode: defaultCourse
+          coursecode: defaultCourse,
+          valuationtype: defaultValuationType
         };
         setFilters(initialFilters);
 
@@ -114,7 +117,8 @@ export default function ConductExam2AwardListPage() {
           academicyear: activeFilters.academicyear,
           examcode: activeFilters.examcode,
           programcode: activeFilters.programcode,
-          coursecode: activeFilters.coursecode
+          coursecode: activeFilters.coursecode,
+          valuationtype: activeFilters.valuationtype || "V1"
         }
       });
 
@@ -244,7 +248,7 @@ export default function ConductExam2AwardListPage() {
           {/* Filter Bar (Hidden on print) */}
           <Paper elevation={0} className="no-print" sx={{ p: 2.5, border: "1px solid #e5e7eb", borderRadius: 2 }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={6} md={2.5}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   select
                   fullWidth
@@ -259,7 +263,7 @@ export default function ConductExam2AwardListPage() {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12} sm={6} md={2.5}>
                 <TextField
                   select
                   fullWidth
@@ -276,7 +280,7 @@ export default function ConductExam2AwardListPage() {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6} md={2.5}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   select
                   fullWidth
@@ -293,7 +297,7 @@ export default function ConductExam2AwardListPage() {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6} md={2.5}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   select
                   fullWidth
@@ -308,6 +312,21 @@ export default function ConductExam2AwardListPage() {
                       {c.course} ({c.coursecode})
                     </MenuItem>
                   ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Valuation Type"
+                  value={filters.valuationtype || "V1"}
+                  onChange={(e) => setFilters({ ...filters, valuationtype: e.target.value })}
+                >
+                  <MenuItem value="V1">Initial Valuation (V1)</MenuItem>
+                  <MenuItem value="V2">Re-evaluation 1 (V2)</MenuItem>
+                  <MenuItem value="V3">Re-evaluation 2 (V3)</MenuItem>
+                  <MenuItem value="V4">Re-evaluation 3 (V4)</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} md={1.5}>
@@ -526,7 +545,12 @@ export default function ConductExam2AwardListPage() {
                       </tr>
                       <tr>
                         <td colSpan={2} style={{ border: "1px solid #000", padding: "5px 8px", verticalAlign: "top" }}>
-                          <strong>Paper Name : </strong> {meta.paperName || "-"}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span><strong>Paper Name : </strong> {meta.paperName || "-"}</span>
+                            <span style={{ fontWeight: "bold", textTransform: "uppercase", fontSize: "12px", background: "#f3f4f6", padding: "2px 8px", borderRadius: "3px", border: "1px solid #999" }}>
+                              {meta.valuationLabel || "Initial Valuation (V1)"}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     </tbody>

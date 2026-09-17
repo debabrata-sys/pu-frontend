@@ -20,7 +20,8 @@ import {
   TableRow,
   TextField,
   Typography,
-  Alert
+  Alert,
+  Tooltip
 } from "@mui/material";
 import {
   Search,
@@ -173,6 +174,11 @@ export default function ConductExam2ValuationSummaryPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleOpenAwardList = (row, valuationtype = "V1") => {
+    const url = `/conduct-exam-2-award-list?examcode=${encodeURIComponent(row.examCode)}&coursecode=${encodeURIComponent(row.subjectCode)}&academicyear=${encodeURIComponent(row.academicyear || "")}&valuationtype=${valuationtype}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -405,7 +411,7 @@ export default function ConductExam2ValuationSummaryPage() {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#fff1f2", color: "#9f1239", textAlign: "center" }}>V4 Pendency</TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#fdf2f8", color: "#9d174d", textAlign: "center" }}>V4 Valuated</TableCell>
-                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f3f4f6", textAlign: "center", minWidth: 130 }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f3f4f6", textAlign: "center", minWidth: 230 }}>Award Sheets (V1 - V4)</TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -426,71 +432,242 @@ export default function ConductExam2ValuationSummaryPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredRows.map((row) => (
-                      <TableRow key={row.sno} hover sx={{ "&:nth-of-type(even)": { bgcolor: "#fafafa" } }}>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 600 }}>{row.sno}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: "#111827" }}>{row.courseName}</TableCell>
-                        <TableCell sx={{ fontWeight: 700, color: "#1f2937" }}>{row.subjectCode}</TableCell>
-                        <TableCell>{row.subjectName}</TableCell>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 700 }}>{row.noScripts}</TableCell>
-                        <TableCell sx={{ textAlign: "center", color: row.uploaded > 0 ? "success.main" : "text.secondary", fontWeight: 600 }}>
-                          {row.uploaded}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", color: row.pendingUploads > 0 ? "error.main" : "text.secondary", fontWeight: 600 }}>
-                          {row.pendingUploads}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#eff6ff", fontWeight: 700, color: "#1d4ed8" }}>
-                          {row.v1Valuated}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#fef3c7", fontWeight: 700, color: "#b45309" }}>
-                          {row.v1Afv ?? row.afv ?? 0}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", fontWeight: 600 }}>
-                          {row.revalApplied > 0 ? (
-                            <Chip label={row.revalApplied} size="small" color="secondary" sx={{ fontWeight: 700 }} />
-                          ) : (
-                            "0"
-                          )}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#f0fdf4", fontWeight: 700, color: "#15803d" }}>
-                          {row.v2Valuated}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#fef9c3", fontWeight: 700, color: "#854d0e" }}>
-                          {row.v2Afv ?? row.v2Pendency ?? 0}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#f0fdf4", fontWeight: 700, color: "#15803d" }}>
-                          {row.v3Valuated}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#fef9c3", fontWeight: 700, color: "#854d0e" }}>
-                          {row.v3Afv ?? row.v3Pendency ?? 0}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#fff1f2", fontWeight: 700, color: "#be123c" }}>
-                          {row.v4Pendency ?? 0}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center", bgcolor: "#fdf2f8", fontWeight: 700, color: "#be185d" }}>
-                          {row.v4Valuated}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center" }}>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Description fontSize="small" />}
-                            onClick={() => navigate(row.awardListUrl)}
-                            sx={{
-                              textTransform: "none",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              py: 0.5,
-                              px: 1.2,
-                              whiteSpace: "nowrap"
-                            }}
-                          >
-                            Award List
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredRows.map((row) => {
+                      const v1Disabled = (row.v1Valuated ?? 0) === 0;
+                      const hasReval = (row.revalApplied ?? 0) > 0;
+                      const v2Disabled = !hasReval || (row.v2Valuated ?? 0) === 0;
+                      const v3Disabled = !hasReval || (row.v3Valuated ?? 0) === 0;
+                      const v4Disabled = !hasReval || (row.v4Valuated ?? 0) === 0;
+
+                      const v1Tooltip = v1Disabled
+                        ? "No V1 initial valuation marks entered yet"
+                        : "Open V1 Award Sheet (Initial Valuation)";
+                      const v2Tooltip = !hasReval
+                        ? "No student applied for re-evaluation in this course"
+                        : (row.v2Valuated ?? 0) === 0
+                        ? "Re-evaluation 1 (V2) marks not evaluated yet"
+                        : "Open V2 Award Sheet (Re-evaluation 1)";
+                      const v3Tooltip = !hasReval
+                        ? "No student applied for re-evaluation in this course"
+                        : (row.v3Valuated ?? 0) === 0
+                        ? "Re-evaluation 2 (V3) marks not evaluated yet"
+                        : "Open V3 Award Sheet (Re-evaluation 2)";
+                      const v4Tooltip = !hasReval
+                        ? "No student applied for re-evaluation in this course"
+                        : (row.v4Valuated ?? 0) === 0
+                        ? "Re-evaluation 3 (V4) marks not evaluated / not required"
+                        : "Open V4 Award Sheet (Re-evaluation 3)";
+
+                      return (
+                        <TableRow key={row.sno} hover sx={{ "&:nth-of-type(even)": { bgcolor: "#fafafa" } }}>
+                          <TableCell sx={{ textAlign: "center", fontWeight: 600 }}>{row.sno}</TableCell>
+                          <TableCell sx={{ fontWeight: 600, color: "#111827" }}>{row.courseName}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, color: "#1f2937" }}>{row.subjectCode}</TableCell>
+                          <TableCell>{row.subjectName}</TableCell>
+                          <TableCell sx={{ textAlign: "center", fontWeight: 700 }}>{row.noScripts}</TableCell>
+                          <TableCell sx={{ textAlign: "center", color: row.uploaded > 0 ? "success.main" : "text.secondary", fontWeight: 600 }}>
+                            {row.uploaded}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", color: row.pendingUploads > 0 ? "error.main" : "text.secondary", fontWeight: 600 }}>
+                            {row.pendingUploads}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#eff6ff", fontWeight: 700, color: "#1d4ed8" }}>
+                            {row.v1Valuated > 0 ? (
+                              <Tooltip title="View V1 Award Sheet" arrow>
+                                <Typography
+                                  component="span"
+                                  onClick={() => handleOpenAwardList(row, "V1")}
+                                  sx={{
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    textDecoration: "underline",
+                                    "&:hover": { color: "#1e3a8a" }
+                                  }}
+                                >
+                                  {row.v1Valuated}
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              row.v1Valuated
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#fef3c7", fontWeight: 700, color: "#b45309" }}>
+                            {row.v1Afv ?? row.afv ?? 0}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", fontWeight: 600 }}>
+                            {row.revalApplied > 0 ? (
+                              <Chip label={row.revalApplied} size="small" color="secondary" sx={{ fontWeight: 700 }} />
+                            ) : (
+                              "0"
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f0fdf4", fontWeight: 700, color: "#15803d" }}>
+                            {row.v2Valuated > 0 ? (
+                              <Tooltip title="View V2 Award Sheet" arrow>
+                                <Typography
+                                  component="span"
+                                  onClick={() => handleOpenAwardList(row, "V2")}
+                                  sx={{
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    textDecoration: "underline",
+                                    "&:hover": { color: "#14532d" }
+                                  }}
+                                >
+                                  {row.v2Valuated}
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              row.v2Valuated
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#fef9c3", fontWeight: 700, color: "#854d0e" }}>
+                            {row.v2Afv ?? row.v2Pendency ?? 0}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f0fdf4", fontWeight: 700, color: "#15803d" }}>
+                            {row.v3Valuated > 0 ? (
+                              <Tooltip title="View V3 Award Sheet" arrow>
+                                <Typography
+                                  component="span"
+                                  onClick={() => handleOpenAwardList(row, "V3")}
+                                  sx={{
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    textDecoration: "underline",
+                                    "&:hover": { color: "#14532d" }
+                                  }}
+                                >
+                                  {row.v3Valuated}
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              row.v3Valuated
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#fef9c3", fontWeight: 700, color: "#854d0e" }}>
+                            {row.v3Afv ?? row.v3Pendency ?? 0}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#fff1f2", fontWeight: 700, color: "#be123c" }}>
+                            {row.v4Pendency ?? 0}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#fdf2f8", fontWeight: 700, color: "#be185d" }}>
+                            {row.v4Valuated > 0 ? (
+                              <Tooltip title="View V4 Award Sheet" arrow>
+                                <Typography
+                                  component="span"
+                                  onClick={() => handleOpenAwardList(row, "V4")}
+                                  sx={{
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    textDecoration: "underline",
+                                    "&:hover": { color: "#831843" }
+                                  }}
+                                >
+                                  {row.v4Valuated}
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              row.v4Valuated
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ textAlign: "center" }}>
+                            <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
+                              <Tooltip title={v1Tooltip} arrow>
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={v1Disabled ? "outlined" : "contained"}
+                                    color="primary"
+                                    disabled={v1Disabled}
+                                    onClick={() => handleOpenAwardList(row, "V1")}
+                                    sx={{
+                                      minWidth: 40,
+                                      px: 0.8,
+                                      py: 0.35,
+                                      fontSize: "11px",
+                                      fontWeight: 800,
+                                      textTransform: "none",
+                                      boxShadow: v1Disabled ? "none" : undefined
+                                    }}
+                                  >
+                                    V1
+                                  </Button>
+                                </span>
+                              </Tooltip>
+
+                              <Tooltip title={v2Tooltip} arrow>
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={v2Disabled ? "outlined" : "contained"}
+                                    color="success"
+                                    disabled={v2Disabled}
+                                    onClick={() => handleOpenAwardList(row, "V2")}
+                                    sx={{
+                                      minWidth: 40,
+                                      px: 0.8,
+                                      py: 0.35,
+                                      fontSize: "11px",
+                                      fontWeight: 800,
+                                      textTransform: "none",
+                                      boxShadow: v2Disabled ? "none" : undefined
+                                    }}
+                                  >
+                                    V2
+                                  </Button>
+                                </span>
+                              </Tooltip>
+
+                              <Tooltip title={v3Tooltip} arrow>
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={v3Disabled ? "outlined" : "contained"}
+                                    color="secondary"
+                                    disabled={v3Disabled}
+                                    onClick={() => handleOpenAwardList(row, "V3")}
+                                    sx={{
+                                      minWidth: 40,
+                                      px: 0.8,
+                                      py: 0.35,
+                                      fontSize: "11px",
+                                      fontWeight: 800,
+                                      textTransform: "none",
+                                      boxShadow: v3Disabled ? "none" : undefined
+                                    }}
+                                  >
+                                    V3
+                                  </Button>
+                                </span>
+                              </Tooltip>
+
+                              <Tooltip title={v4Tooltip} arrow>
+                                <span>
+                                  <Button
+                                    size="small"
+                                    variant={v4Disabled ? "outlined" : "contained"}
+                                    color="error"
+                                    disabled={v4Disabled}
+                                    onClick={() => handleOpenAwardList(row, "V4")}
+                                    sx={{
+                                      minWidth: 40,
+                                      px: 0.8,
+                                      py: 0.35,
+                                      fontSize: "11px",
+                                      fontWeight: 800,
+                                      textTransform: "none",
+                                      boxShadow: v4Disabled ? "none" : undefined
+                                    }}
+                                  >
+                                    V4
+                                  </Button>
+                                </span>
+                              </Tooltip>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
