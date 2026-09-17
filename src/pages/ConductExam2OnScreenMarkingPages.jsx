@@ -775,7 +775,7 @@ const AnswerScriptCanvasViewer = React.memo(function AnswerScriptCanvasViewer({
   );
 });
 
-export function ConductExam2OnScreenMarkingPage() {
+export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
   // View mode: 'list' (Assigned courses grid) vs 'marking' (Dedicated scoring workspace)
   const [viewMode, setViewMode] = useState("list");
 
@@ -794,13 +794,16 @@ export function ConductExam2OnScreenMarkingPage() {
   // ===================== VIEW 1: ASSIGNED COURSES =====================
   const [assignedCourses, setAssignedCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [valuationType, setValuationType] = useState("V1");
+  const [valuationType, setValuationType] = useState(isReevaluation ? "V2" : "V1");
 
   const loadAssignedCourses = async () => {
     try {
       setLoading(true);
       setError("");
-      const res = await ep1.get("/api/v2/conductexam2/onscreen-assigned-courses", {
+      const endpoint = isReevaluation
+        ? "/api/v2/conductexam2/reevaluation-assigned-courses"
+        : "/api/v2/conductexam2/onscreen-assigned-courses";
+      const res = await ep1.get(endpoint, {
         params: { colid: global1.colid, examineremail }
       });
       setAssignedCourses(res.data?.data || []);
@@ -813,7 +816,7 @@ export function ConductExam2OnScreenMarkingPage() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const qpValuation = urlParams.get("valuationtype") || "V1";
+    const qpValuation = urlParams.get("valuationtype") || (isReevaluation ? "V2" : "V1");
     const qpExam = urlParams.get("examcode");
     const qpCourse = urlParams.get("coursecode");
     const qpRegno = urlParams.get("regno");
@@ -836,7 +839,7 @@ export function ConductExam2OnScreenMarkingPage() {
     } else {
       loadAssignedCourses();
     }
-  }, []);
+  }, [isReevaluation]);
 
   // ===================== VIEW 2: MARKING WORKSPACE =====================
   const [paper, setPaper] = useState(null);
@@ -887,7 +890,7 @@ export function ConductExam2OnScreenMarkingPage() {
   const handleStartMarking = async (course) => {
     setSelectedCourse(course);
     setViewMode("marking");
-    const activeVal = course.valuationtype || "V1";
+    const activeVal = course.valuationtype || (isReevaluation ? "V2" : "V1");
     setValuationType(activeVal);
     await loadCourseStudentsAndPaper(course, activeVal);
   };
@@ -897,7 +900,7 @@ export function ConductExam2OnScreenMarkingPage() {
     setViewMode("list");
     setSelectedCourse(null);
     setSelectedStudent(null);
-    setValuationType("V1");
+    setValuationType(isReevaluation ? "V2" : "V1");
     if (timerSecondsRef) timerSecondsRef.current = 0;
     if (typeof window !== "undefined" && window.history?.replaceState) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -907,7 +910,7 @@ export function ConductExam2OnScreenMarkingPage() {
 
   // Load students & question paper for selected course
   const loadCourseStudentsAndPaper = async (course, forcedValuationType, targetRegno) => {
-    const activeValType = forcedValuationType || course.valuationtype || valuationType || "V1";
+    const activeValType = forcedValuationType || course.valuationtype || valuationType || (isReevaluation ? "V2" : "V1");
     setValuationType(activeValType);
     try {
       setLoading(true);
@@ -1417,6 +1420,29 @@ export function ConductExam2OnScreenMarkingPage() {
         </Box>
       )
     },
+    ...(isReevaluation
+      ? [
+          {
+            field: "roleLabel",
+            headerName: "Re-evaluation Role",
+            width: 200,
+            headerAlign: "center",
+            align: "center",
+            renderCell: (params) => {
+              const val = params.row.valuationtype;
+              const color = val === "V2" ? "primary" : val === "V3" ? "secondary" : "error";
+              return (
+                <Chip
+                  label={params.row.roleLabel || (val === "V2" ? "Re-evaluator 1 (V2)" : "Re-evaluator 2 (V3)")}
+                  size="small"
+                  color={color}
+                  sx={{ fontWeight: 800 }}
+                />
+              );
+            }
+          }
+        ]
+      : []),
     {
       field: "action",
       headerName: "Action",
@@ -1515,7 +1541,7 @@ export function ConductExam2OnScreenMarkingPage() {
   // ===================== RENDER VIEW 1: ASSIGNED COURSES GRID =====================
   if (viewMode === "list") {
     return (
-      <MenuPageShell title="On Screen Marking 2">
+      <MenuPageShell title={isReevaluation ? "Re-evaluation On-Screen Marking" : "On Screen Marking 2"}>
         <Box sx={{ p: 3 }}>
           <Stack spacing={2.5}>
             {/* Header Box */}
@@ -1523,10 +1549,12 @@ export function ConductExam2OnScreenMarkingPage() {
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} alignItems="center">
                 <Box>
                   <Typography variant="h5" fontWeight={900} color="#0f172a">
-                    Evaluator Management 2 — On-Screen Marking
+                    {isReevaluation ? "Re-evaluation On-Screen Marking Desk" : "Evaluator Management 2 — On-Screen Marking"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Select an assigned course to enter the dedicated on-screen marking workspace.
+                    {isReevaluation
+                      ? "Review and evaluate student answer scripts assigned to you for blind re-evaluation (V2, V3 & V4)."
+                      : "Select an assigned course to enter the dedicated on-screen marking workspace."}
                   </Typography>
                 </Box>
                 <Stack direction="row" spacing={1.5}>
@@ -1639,11 +1667,11 @@ export function ConductExam2OnScreenMarkingPage() {
   // ===================== RENDER VIEW 2: DEDICATED MARKING WORKSPACE =====================
   return (
     <MenuPageShell
-      title={`On-Screen Marking — ${selectedCourse?.course || "Course"}`}
+      title={isReevaluation ? `Re-evaluation Marking — ${selectedCourse?.course || "Course"}` : `On-Screen Marking — ${selectedCourse?.course || "Course"}`}
       defaultCollapsed={true}
       hideDrawer={true}
       onBack={handleBackToList}
-      backText="← Back to Courses"
+      backText={isReevaluation ? "← Back to Re-evaluations" : "← Back to Courses"}
     >
       <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 70px)", overflow: "hidden", bgcolor: "#f1f5f9" }}>
         {/* Workspace Top Navigation Bar */}
@@ -2569,4 +2597,6 @@ export function ConductExam2OnScreenMarkingPage() {
   );
 }
 
-
+export function ConductExam2ReevaluationOnScreenMarkingPage() {
+  return <ConductExam2OnScreenMarkingPage isReevaluation={true} />;
+}

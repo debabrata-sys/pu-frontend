@@ -1233,7 +1233,7 @@ export default function ConductExam2ReevaluationPage() {
                                         variant="outlined"
                                         color="primary"
                                         sx={{ fontSize: "10.5px", py: 0.2, px: 0.8, textTransform: "none", minWidth: 60 }}
-                                        onClick={() => window.open(`/conduct-exam-2-on-screen-marking?examcode=${d.examcode}&coursecode=${d.coursecode}&regno=${d.regno}&valuationtype=V2`, "_blank")}
+                                        onClick={() => window.open(`/conduct-exam-2-reevaluation-on-screen-marking?examcode=${d.examcode}&coursecode=${d.coursecode}&regno=${d.regno}&valuationtype=V2`, "_blank")}
                                       >
                                         View V2
                                       </Button>
@@ -1242,7 +1242,7 @@ export default function ConductExam2ReevaluationPage() {
                                         variant="outlined"
                                         color="secondary"
                                         sx={{ fontSize: "10.5px", py: 0.2, px: 0.8, textTransform: "none", minWidth: 60 }}
-                                        onClick={() => window.open(`/conduct-exam-2-on-screen-marking?examcode=${d.examcode}&coursecode=${d.coursecode}&regno=${d.regno}&valuationtype=V3`, "_blank")}
+                                        onClick={() => window.open(`/conduct-exam-2-reevaluation-on-screen-marking?examcode=${d.examcode}&coursecode=${d.coursecode}&regno=${d.regno}&valuationtype=V3`, "_blank")}
                                       >
                                         View V3
                                       </Button>
@@ -1433,7 +1433,7 @@ export default function ConductExam2ReevaluationPage() {
                                       variant="outlined"
                                       color="primary"
                                       sx={{ fontSize: "10.5px", py: 0.1, px: 0.8, textTransform: "none", minWidth: 65, height: 22 }}
-                                      onClick={() => window.open(`/conduct-exam-2-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V2`, "_blank")}
+                                      onClick={() => window.open(`/conduct-exam-2-reevaluation-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V2`, "_blank")}
                                     >
                                       {r.reevaluator1?.status === "Evaluated" ? "Review V2" : "Mark V2"}
                                     </Button>
@@ -1457,7 +1457,7 @@ export default function ConductExam2ReevaluationPage() {
                                       variant="outlined"
                                       color="secondary"
                                       sx={{ fontSize: "10.5px", py: 0.1, px: 0.8, textTransform: "none", minWidth: 65, height: 22 }}
-                                      onClick={() => window.open(`/conduct-exam-2-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V3`, "_blank")}
+                                      onClick={() => window.open(`/conduct-exam-2-reevaluation-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V3`, "_blank")}
                                     >
                                       {r.reevaluator2?.status === "Evaluated" ? "Review V3" : "Mark V3"}
                                     </Button>
@@ -1488,7 +1488,7 @@ export default function ConductExam2ReevaluationPage() {
                                       variant="outlined"
                                       color="error"
                                       sx={{ fontSize: "10.5px", py: 0.1, px: 0.8, textTransform: "none", minWidth: 65, height: 22 }}
-                                      onClick={() => window.open(`/conduct-exam-2-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V4`, "_blank")}
+                                      onClick={() => window.open(`/conduct-exam-2-reevaluation-on-screen-marking?examcode=${r.examcode}&coursecode=${r.coursecode}&regno=${r.regno}&valuationtype=V4`, "_blank")}
                                     >
                                       {r.reevaluator3?.status === "Evaluated" ? "Review V4" : "Mark V4"}
                                     </Button>

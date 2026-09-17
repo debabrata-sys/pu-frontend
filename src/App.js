@@ -1232,7 +1232,7 @@ import ConductExam2ExaminerMarksEntryPage from "./pages/ConductExam2ExaminerMark
 import ConductExam2ComponentwiseAllocationPage from "./pages/ConductExam2ComponentwiseAllocationPage";
 import ConductExam2ComponentwiseMarksPage from "./pages/ConductExam2ComponentwiseMarksPage";
 import { ConductExam2DaywiseMarksMonitoringPage, ConductExam2ExaminerReassignmentPage, ConductExam2MarksEntryMonitoringPage } from "./pages/ConductExam2ComponentMonitoringPages";
-import { ConductExam2OnScreenMarkingPage, ConductExam2ScoreRulePage } from "./pages/ConductExam2OnScreenMarkingPages";
+import { ConductExam2OnScreenMarkingPage, ConductExam2ReevaluationOnScreenMarkingPage, ConductExam2ScoreRulePage } from "./pages/ConductExam2OnScreenMarkingPages";
 import ConductExam2AnswerBookUploadPage from "./pages/ConductExam2AnswerBookUploadPage";
 import ConductExam2AwardListPage from "./pages/ConductExam2AwardListPage";
 import ConductExam2ValuationSummaryPage from "./pages/ConductExam2ValuationSummaryPage";
@@ -4361,6 +4361,7 @@ function App() {
         <Route path="/conduct-exam-2-valuation-status-summary" element={<ConductExam2ValuationSummaryPage />} />
         <Route path="/conduct-exam-2-evaluator-quota" element={<ConductExam2EvaluatorQuotaPage />} />
         <Route path="/conduct-exam-2-reevaluation" element={<ConductExam2ReevaluationPage />} />
+        <Route path="/conduct-exam-2-reevaluation-on-screen-marking" element={<ConductExam2ReevaluationOnScreenMarkingPage />} />
         <Route path="/conduct-exam-2-evaluation-reports" element={<ConductExam2EvaluationReportsPage />} />
         <Route path="/conduct-exam-2-day-report" element={<ConductExam2EvaluationReportsPage initialTab="day" />} />
         <Route path="/conduct-exam-2-monthly-report" element={<ConductExam2EvaluationReportsPage initialTab="monthly" />} />

@@ -38,6 +38,7 @@ import AvTimerIcon from '@mui/icons-material/AvTimer';
 import Battery4BarIcon from '@mui/icons-material/Battery4Bar';
 import BookIcon from '@mui/icons-material/Book';
 import BrightnessHighIcon from '@mui/icons-material/BrightnessHigh';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 import global1 from './global1';
 
 const getlink = () => {
@@ -5775,6 +5776,12 @@ export function menuitemsall() {
               <AddTaskIcon />
             </ListItemIcon>
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Re-evaluation desk" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-reevaluation-on-screen-marking">
+            <ListItemIcon>
+              <RateReviewIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Re-evaluation on-screen marking" />}
           </ListItem>
           <ListItem button component={RouterLink} to="/conduct-exam-2-valuation-status-summary">
             <ListItemIcon>
