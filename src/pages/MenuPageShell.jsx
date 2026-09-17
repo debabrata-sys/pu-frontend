@@ -106,9 +106,25 @@ export default function MenuPageShell({
     }
   }, [open, defaultCollapsed, hideDrawer]);
 
-  const menuItems = menuType === "student" || String(global1.role || "").toLowerCase() === "student"
-    ? studentListItems
-    : mainListItems;
+  const renderNavList = () => {
+    const isStudent = menuType === "student" || String(global1.role || "").toLowerCase() === "student";
+    const Target = isStudent ? studentListItems : mainListItems;
+
+    if (typeof Target === "function") {
+      try {
+        const result = Target({ open });
+        if (React.isValidElement(result)) return result;
+        const TargetComponent = Target;
+        return <TargetComponent open={open} />;
+      } catch (err) {
+        console.warn("Target menu render error:", err);
+      }
+    }
+    if (React.isValidElement(Target)) {
+      return Target;
+    }
+    return null;
+  };
 
   const logout = () => {
     localStorage.clear();
@@ -176,7 +192,7 @@ export default function MenuPageShell({
               </IconButton>
             </Toolbar>
             <Divider />
-            <List>{menuItems({ open })}</List>
+            <List>{renderNavList()}</List>
           </DrawerStyled>
         )}
         <Box component="main" sx={{ flexGrow: 1, height: "100vh", overflow: "auto", backgroundColor: "#f6f7fb" }}>
