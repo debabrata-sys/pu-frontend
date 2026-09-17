@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Autocomplete, Box, Breadcrumbs, Button, FormControl, Grid, InputLabel, Link, MenuItem, Paper, Select, Stack, TextField, Typography, Alert } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
-import { Delete, Edit, Logout, Save } from "@mui/icons-material";
+import { Delete, Download, Edit, Logout, Refresh, Save, UploadFile } from "@mui/icons-material";
+import * as XLSX from "xlsx";
 import MenuPageShell from "./MenuPageShell";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -14,6 +15,7 @@ export default function UserProfileApprovalWorkflowPage() {
   const [form, setForm] = useState(blank);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -55,6 +57,73 @@ export default function UserProfileApprovalWorkflowPage() {
       setError(err.response?.data?.msg || "Unable to save workflow");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const sampleRows = [
+      {
+        Role: "All",
+        Type: "All",
+        Level: 1,
+        "Approver Role": "HR",
+        "Approver Name": "Mr Ankit Tripathi",
+        "Approver Email": "ankit.hr@peoplesuniversity.edu.in",
+        Status: "Active"
+      },
+      {
+        Role: "Faculty",
+        Type: "Profile",
+        Level: 1,
+        "Approver Role": "HOD",
+        "Approver Name": "",
+        "Approver Email": "",
+        Status: "Active"
+      }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Workflow Template");
+    XLSX.writeFile(workbook, "profile_approval_workflow_template.xlsx");
+  };
+
+  const handleBulkUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploading(true);
+    setError("");
+    setMessage("");
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const uploadRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!uploadRows.length) {
+        setError("The uploaded file is empty or has no valid rows.");
+        return;
+      }
+
+      const res = await ep1.post("/api/v2/user-profile-approval-workflows-bulk", {
+        colid: global1.colid,
+        user: global1.user,
+        rows: uploadRows
+      });
+
+      const errors = res.data?.errors || [];
+      const saved = res.data?.saved || 0;
+      setMessage(`Bulk upload completed. Saved/updated: ${saved}${errors.length ? `, errors: ${errors.length}` : ""}.`);
+      if (errors.length) {
+        setError(errors.slice(0, 10).map((e) => `Row ${e.row}: ${e.message}`).join(" | ") + (errors.length > 10 ? ` ...and ${errors.length - 10} more errors` : ""));
+      }
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.msg || err.response?.data?.message || "Unable to bulk upload approval workflows");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -110,7 +179,24 @@ export default function UserProfileApprovalWorkflowPage() {
             <Grid item xs={12} md={2}><Autocomplete freeSolo options={roles} value={form.approverrole} onInputChange={(_, value) => setForm((old) => ({ ...old, approverrole: value || "" }))} renderInput={(params) => <TextField {...params} label="Approver role" />} /></Grid>
             <Grid item xs={12} md={2.5}><Autocomplete options={users} value={selectedUser} getOptionLabel={(u) => u ? `${u.name || ""} (${u.email || ""})` : ""} onChange={(_, u) => setForm((old) => ({ ...old, approvername: u?.name || "", approveremail: u?.email || "", approverrole: old.approverrole || u?.role || "" }))} renderInput={(params) => <TextField {...params} label="Approver" />} /></Grid>
             <Grid item xs={12} md={2}><FormControl fullWidth><InputLabel>Status</InputLabel><Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><MenuItem value="Active">Active</MenuItem><MenuItem value="Inactive">Inactive</MenuItem></Select></FormControl></Grid>
-            <Grid item xs={12}><Stack direction="row" spacing={1}><Button variant="contained" startIcon={<Save />} disabled={saving} onClick={save}>{saving ? "Saving..." : "Save"}</Button><Button variant="outlined" onClick={() => setForm(blank)}>Clear</Button></Stack></Grid>
+            <Grid item xs={12}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1}>
+                  <Button variant="contained" startIcon={<Save />} disabled={saving || uploading} onClick={save}>{saving ? "Saving..." : "Save"}</Button>
+                  <Button variant="outlined" onClick={() => setForm(blank)}>Clear</Button>
+                  <Button variant="outlined" startIcon={<Refresh />} onClick={load}>Refresh</Button>
+                </Stack>
+                <Stack direction="row" spacing={1}>
+                  <Button variant="outlined" color="primary" startIcon={<Download />} onClick={downloadTemplate}>
+                    Download Template
+                  </Button>
+                  <Button variant="contained" color="secondary" component="label" startIcon={<UploadFile />} disabled={uploading}>
+                    {uploading ? "Uploading..." : "Bulk Upload"}
+                    <input hidden type="file" accept=".xlsx,.xls,.csv" onChange={handleBulkUpload} />
+                  </Button>
+                </Stack>
+              </Stack>
+            </Grid>
           </Grid>
         </Paper>
         <Paper sx={{ height: 620 }}><DataGrid rows={rows} columns={columns} loading={loading} slots={{ toolbar: GridToolbar }} pageSizeOptions={[25, 50, 100]} /></Paper>

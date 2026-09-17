@@ -1234,6 +1234,11 @@ import ConductExam2ComponentwiseMarksPage from "./pages/ConductExam2Componentwis
 import { ConductExam2DaywiseMarksMonitoringPage, ConductExam2ExaminerReassignmentPage, ConductExam2MarksEntryMonitoringPage } from "./pages/ConductExam2ComponentMonitoringPages";
 import { ConductExam2OnScreenMarkingPage, ConductExam2ScoreRulePage } from "./pages/ConductExam2OnScreenMarkingPages";
 import ConductExam2AnswerBookUploadPage from "./pages/ConductExam2AnswerBookUploadPage";
+import ConductExam2AwardListPage from "./pages/ConductExam2AwardListPage";
+import ConductExam2ValuationSummaryPage from "./pages/ConductExam2ValuationSummaryPage";
+import ConductExam2EvaluatorQuotaPage from "./pages/ConductExam2EvaluatorQuotaPage";
+import ConductExam2ReevaluationPage from "./pages/ConductExam2ReevaluationPage";
+import ConductExam2EvaluationReportsPage from "./pages/ConductExam2EvaluationReportsPage";
 import ConductExamStockConfigurationPage from "./pages/ConductExamStockConfigurationPage";
 import ConductExamStockEntryPage from "./pages/ConductExamStockEntryPage";
 import ConductExamStockIssueReceivePage from "./pages/ConductExamStockIssueReceivePage";
@@ -1512,6 +1517,8 @@ import UserProfileLayoutPage from "./pages/UserProfileLayoutPage";
 import UserProfileDisplayLayoutPage from "./pages/UserProfileDisplayLayoutPage";
 import UserProfileLayoutDisplayPage, { StudentProfileLayoutDisplayPage, UserProfileCustomFieldsGridPage } from "./pages/UserProfileLayoutDisplayPage";
 import UserProfileEditPage from "./pages/UserProfileEditPage";
+import NonStudentProfileEditPage from "./pages/NonStudentProfileEditPage";
+import NonStudentUsersLayoutPage from "./pages/NonStudentUsersLayoutPage";
 import UserProfileApprovalWorkflowPage from "./pages/UserProfileApprovalWorkflowPage";
 import UserProfileApprovalPage from "./pages/UserProfileApprovalPage";
 import UserProfileStudentApprovalPage from "./pages/UserProfileStudentApprovalPage";
@@ -2906,6 +2913,8 @@ function App() {
         <Route path="/studentadmissionprofile" element={<DynamicAdmissionProfile2Page student />} />
         <Route path="/studentdynamicprofile" element={<StudentCombinedDynamicProfilePage />} />
         <Route path="/userprofileedit" element={<UserProfileEditPage />} />
+        <Route path="/nonstudentprofileedit" element={<NonStudentProfileEditPage />} />
+        <Route path="/nonstudentuserslayout" element={<NonStudentUsersLayoutPage />} />
         <Route path="/studentprofiledynamic" element={<UserProfileEditPage student />} />
         <Route path="/userprofileapprovalworkflow" element={<UserProfileApprovalWorkflowPage />} />
         <Route path="/userprofileapproval" element={<UserProfileApprovalPage />} />
@@ -4348,6 +4357,17 @@ function App() {
         <Route path="/conduct-exam-2-score-rule" element={<ConductExam2ScoreRulePage />} />
         <Route path="/conduct-exam-2-on-screen-marking" element={<ConductExam2OnScreenMarkingPage />} />
         <Route path="/conduct-exam-2-answer-book-upload" element={<ConductExam2AnswerBookUploadPage />} />
+        <Route path="/conduct-exam-2-award-list" element={<ConductExam2AwardListPage />} />
+        <Route path="/conduct-exam-2-valuation-status-summary" element={<ConductExam2ValuationSummaryPage />} />
+        <Route path="/conduct-exam-2-evaluator-quota" element={<ConductExam2EvaluatorQuotaPage />} />
+        <Route path="/conduct-exam-2-reevaluation" element={<ConductExam2ReevaluationPage />} />
+        <Route path="/conduct-exam-2-evaluation-reports" element={<ConductExam2EvaluationReportsPage />} />
+        <Route path="/conduct-exam-2-day-report" element={<ConductExam2EvaluationReportsPage initialTab="day" />} />
+        <Route path="/conduct-exam-2-monthly-report" element={<ConductExam2EvaluationReportsPage initialTab="monthly" />} />
+        <Route path="/conduct-exam-2-examiners-report" element={<ConductExam2EvaluationReportsPage initialTab="examiners" />} />
+        <Route path="/conduct-exam-2-center-wise-report" element={<ConductExam2EvaluationReportsPage initialTab="centerwise" />} />
+        <Route path="/conduct-exam-2-series-wise-log" element={<ConductExam2EvaluationReportsPage initialTab="serieswise" />} />
+        <Route path="/conduct-exam-2-skipped-scripts" element={<ConductExam2EvaluationReportsPage initialTab="skipped" />} />
         <Route path="/conduct-exam-2-examiner-payment" element={<ConductExam2ExaminerPaymentPage />} />
         <Route path="/conduct-exam-stock-configuration" element={<ConductExamStockConfigurationPage />} />
         <Route path="/conduct-exam-stock-entry" element={<ConductExamStockEntryPage />} />

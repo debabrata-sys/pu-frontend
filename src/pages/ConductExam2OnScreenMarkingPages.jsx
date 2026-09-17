@@ -27,7 +27,8 @@ import {
   TableHead,
   TableRow,
   Select,
-  FormControl
+  FormControl,
+  CircularProgress
 } from "@mui/material";
 import { DataGrid, GridActionsCellItem, GridToolbar } from "@mui/x-data-grid";
 import {
@@ -66,6 +67,11 @@ import MenuPageShell from "./MenuPageShell";
 import ExamAcceptanceDialog from "../components/conductExam/ExamAcceptanceDialog";
 import ExamDeclarationDialog from "../components/conductExam/ExamDeclarationDialog";
 import ExamRemunerationBillDialog from "../components/conductExam/ExamRemunerationBillDialog";
+import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
+
+if (typeof window !== "undefined" && pdfjsLib?.GlobalWorkerOptions) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+}
 
 const labelPaper = (row) => `${row.academicyear} | ${row.exam} (${row.examcode}) | ${row.program} (${row.programcode}) | ${row.course} (${row.coursecode})`;
 const uniq = (values = []) => [...new Set(values.map((item) => String(item || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
@@ -194,6 +200,581 @@ export function ConductExam2ScoreRulePage() {
   );
 }
 
+// Isolated TimerBadge to avoid re-rendering parent tree on 1-second interval
+const TimerBadge = React.memo(function TimerBadge({ activeStudentId, timerSecondsRef }) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    setSeconds(0);
+    if (timerSecondsRef) timerSecondsRef.current = 0;
+    if (!activeStudentId) return;
+
+    const interval = setInterval(() => {
+      setSeconds((prev) => {
+        const next = prev + 1;
+        if (timerSecondsRef) timerSecondsRef.current = next;
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeStudentId, timerSecondsRef]);
+
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  const timeStr = `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+
+  return (
+    <Box
+      sx={{
+        bgcolor: "#dc2626",
+        color: "#ffffff",
+        borderRadius: 1.5,
+        px: 0.5,
+        py: 0.75,
+        width: "100%",
+        textAlign: "center",
+        boxShadow: "0 2px 5px rgba(220,38,38,0.3)"
+      }}
+    >
+      <Typography variant="caption" sx={{ fontSize: "0.6rem", display: "block", opacity: 0.9, fontWeight: 800 }}>
+        TIMER
+      </Typography>
+      <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 900, fontSize: "0.8rem", letterSpacing: 0.5 }}>
+        {timeStr}
+      </Typography>
+    </Box>
+  );
+});
+
+// Single PDF Page Component: Renders an individual page to canvas and manages annotations
+const SinglePdfPage = React.memo(function SinglePdfPage({
+  pdfDoc,
+  pageNumber,
+  zoom = 100,
+  activeMarkTool = "stamp_right",
+  pageStamps = [],
+  onAddStamp,
+  onDeleteStamp,
+  isVerified = false,
+  onPageVisible
+}) {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const renderTaskRef = useRef(null);
+  const [rendered, setRendered] = useState(false);
+  const [rendering, setRendering] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 750, height: 1060 });
+  // First 2 pages render immediately, subsequent pages are observed
+  const [isVisible, setIsVisible] = useState(pageNumber <= 2);
+
+  // Lazy render when scrolled within 800px of viewport
+  useEffect(() => {
+    if (pageNumber <= 2) return;
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "800px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pageNumber]);
+
+  // Viewport center detection to report current active page
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !onPageVisible || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && entry.intersectionRatio >= 0.35) {
+          onPageVisible(pageNumber);
+        }
+      },
+      { threshold: [0.35, 0.7] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pageNumber, onPageVisible]);
+
+  // Render to canvas when isVisible and pdfDoc are available
+  useEffect(() => {
+    if (!pdfDoc || !isVisible) return;
+    let isCancelled = false;
+
+    const renderPage = async () => {
+      try {
+        setRendering(true);
+        if (renderTaskRef.current) {
+          try {
+            await renderTaskRef.current.cancel();
+          } catch (e) {}
+        }
+
+        const page = await pdfDoc.getPage(pageNumber);
+        if (isCancelled) return;
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+
+        // Scale: 100% zoom = 1.32x base A4 (approx ~790px width)
+        const scale = (zoom / 100) * 1.32;
+        const viewport = page.getViewport({ scale });
+
+        const pixelRatio = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * pixelRatio);
+        canvas.height = Math.floor(viewport.height * pixelRatio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+        setDimensions({
+          width: Math.floor(viewport.width),
+          height: Math.floor(viewport.height)
+        });
+
+        const renderTask = page.render({
+          canvasContext: ctx,
+          viewport: viewport
+        });
+        renderTaskRef.current = renderTask;
+        await renderTask.promise;
+
+        if (!isCancelled) {
+          setRendered(true);
+          setRendering(false);
+        }
+      } catch (err) {
+        if (!isCancelled && err.name !== "RenderingCancelledException") {
+          console.error(`Page ${pageNumber} render error:`, err);
+          setRendering(false);
+        }
+      }
+    };
+
+    renderPage();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [pdfDoc, pageNumber, zoom, isVisible]);
+
+  // Click on page to stamp
+  const handlePageClick = (e) => {
+    if (activeMarkTool === "view") return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const newStamp = {
+      id: Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      page: pageNumber,
+      type: activeMarkTool === "stamp_wrong" ? "wrong" : "right",
+      x: Math.max(1, Math.min(99, Number(x.toFixed(2)))),
+      y: Math.max(1, Math.min(99, Number(y.toFixed(2)))),
+      timestamp: new Date().toISOString()
+    };
+
+    if (onAddStamp) {
+      onAddStamp(newStamp);
+    }
+  };
+
+  const stampsOnThisPage = (pageStamps || []).filter((s) => s.page === pageNumber);
+
+  return (
+    <Box
+      ref={containerRef}
+      id={`pdf-page-${pageNumber}`}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        mb: 3,
+        position: "relative"
+      }}
+    >
+      {/* Page Header Bar */}
+      <Box
+        sx={{
+          width: dimensions.width,
+          maxWidth: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: 1.5,
+          py: 0.6,
+          bgcolor: "rgba(15, 23, 42, 0.95)",
+          borderRadius: "4px 4px 0 0",
+          color: "#cbd5e1"
+        }}
+      >
+        <Typography variant="caption" sx={{ fontWeight: 800, fontSize: "0.78rem", letterSpacing: 0.5 }}>
+          PAGE {pageNumber}
+        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {isVerified ? (
+            <Chip
+              size="small"
+              icon={<Check sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+              label="Verified"
+              sx={{ bgcolor: "#16a34a", color: "#ffffff", fontWeight: 800, height: 20, fontSize: "0.68rem" }}
+            />
+          ) : (
+            <Chip
+              size="small"
+              label="Unverified"
+              sx={{ bgcolor: "#dc2626", color: "#ffffff", fontWeight: 800, height: 20, fontSize: "0.68rem" }}
+            />
+          )}
+          <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.68rem" }}>
+            {stampsOnThisPage.length} mark{stampsOnThisPage.length !== 1 ? "s" : ""}
+          </Typography>
+        </Stack>
+      </Box>
+
+      {/* Page Canvas + Stamping Container */}
+      <Box
+        sx={{
+          position: "relative",
+          width: dimensions.width,
+          height: dimensions.height,
+          boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+          borderRadius: "0 0 4px 4px",
+          bgcolor: "#ffffff",
+          overflow: "hidden"
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{
+            display: "block",
+            width: dimensions.width,
+            height: dimensions.height
+          }}
+        />
+
+        {/* Loading Spinner for this page */}
+        {rendering && !rendered && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              bgcolor: "rgba(15,23,42,0.75)",
+              color: "#ffffff",
+              px: 2,
+              py: 1,
+              borderRadius: 2
+            }}
+          >
+            <CircularProgress size={20} sx={{ color: "#38bdf8" }} />
+            <Typography variant="caption" fontWeight={700}>Loading Page {pageNumber}...</Typography>
+          </Box>
+        )}
+
+        {/* Stamping Overlay */}
+        <Box
+          onClick={handlePageClick}
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 10,
+            cursor:
+              activeMarkTool === "stamp_right" || activeMarkTool === "stamp_wrong"
+                ? "crosshair"
+                : "default",
+            pointerEvents: activeMarkTool === "view" ? "none" : "auto"
+          }}
+        >
+          {stampsOnThisPage.map((stamp) => {
+            const isRight = stamp.type === "right";
+            return (
+              <Tooltip
+                key={stamp.id}
+                title={`Click to remove this ${isRight ? "Right (✔)" : "Wrong (✘)"} mark`}
+                arrow
+              >
+                <Box
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDeleteStamp) onDeleteStamp(stamp.id);
+                  }}
+                  sx={{
+                    position: "absolute",
+                    left: `${stamp.x}%`,
+                    top: `${stamp.y}%`,
+                    transform: "translate(-50%, -50%)",
+                    bgcolor: isRight ? "#16a34a" : "#dc2626",
+                    color: "#ffffff",
+                    borderRadius: "50%",
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: isRight
+                      ? "0 2px 10px rgba(22,163,74,0.7)"
+                      : "0 2px 10px rgba(220,38,38,0.7)",
+                    border: "2px solid #ffffff",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    pointerEvents: "auto",
+                    transition: "transform 0.15s ease",
+                    "&:hover": {
+                      transform: "translate(-50%, -50%) scale(1.2)",
+                      filter: "brightness(1.15)"
+                    }
+                  }}
+                >
+                  {isRight ? (
+                    <Check sx={{ fontSize: 22, fontWeight: 900 }} />
+                  ) : (
+                    <Close sx={{ fontSize: 22, fontWeight: 900 }} />
+                  )}
+                </Box>
+              </Tooltip>
+            );
+          })}
+        </Box>
+      </Box>
+    </Box>
+  );
+});
+
+// Canvas-based Continuous Scrollable PDF viewer
+const AnswerScriptCanvasViewer = React.memo(function AnswerScriptCanvasViewer({
+  pdfUrl,
+  currentPage,
+  totalPages,
+  onTotalPagesDetected,
+  onCurrentPageChange,
+  brightness = 100,
+  contrast = 100,
+  zoom = 100,
+  activeMarkTool = "stamp_right",
+  pageStamps = [],
+  verifiedPages = new Set(),
+  onAddStamp,
+  onDeleteStamp,
+  onUndoStamp,
+  setActiveMarkTool
+}) {
+  const [pdfDoc, setPdfDoc] = useState(null);
+  const [loadingDoc, setLoadingDoc] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const containerRef = useRef(null);
+
+  // 1. Load PDF Document via PDF.js
+  useEffect(() => {
+    if (!pdfUrl) {
+      setPdfDoc(null);
+      setLoadError(null);
+      return;
+    }
+    let isCancelled = false;
+    setLoadingDoc(true);
+    setLoadError(null);
+
+    const loadingTask = pdfjsLib.getDocument({
+      url: pdfUrl,
+      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/cmaps/",
+      cMapPacked: true
+    });
+
+    loadingTask.promise
+      .then((doc) => {
+        if (!isCancelled) {
+          setPdfDoc(doc);
+          setLoadingDoc(false);
+          if (onTotalPagesDetected && doc.numPages > 0) {
+            onTotalPagesDetected(doc.numPages);
+          }
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          console.error("PDF.js load error:", err);
+          setLoadError(err.message || "Failed to load PDF");
+          setLoadingDoc(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+      try {
+        loadingTask.destroy();
+      } catch (e) {}
+    };
+  }, [pdfUrl]);
+
+  const pageCount = pdfDoc ? pdfDoc.numPages : (totalPages || 1);
+  const pageNumbers = useMemo(() => Array.from({ length: pageCount }, (_, i) => i + 1), [pageCount]);
+
+  return (
+    <Box
+      ref={containerRef}
+      sx={{
+        flex: 1,
+        height: "100%",
+        width: "100%",
+        overflowY: "auto",
+        overflowX: "auto",
+        bgcolor: "#1e293b",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        position: "relative",
+        p: 2,
+        filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+        transition: "filter 0.2s ease"
+      }}
+    >
+      {/* Sticky Top Tool Floating Bar */}
+      <Box
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          bgcolor: "rgba(15, 23, 42, 0.94)",
+          backdropFilter: "blur(8px)",
+          borderRadius: 2,
+          px: 1.5,
+          py: 0.6,
+          mb: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          border: "1px solid rgba(255,255,255,0.18)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.45)"
+        }}
+      >
+        <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 800, fontSize: "0.68rem" }}>
+          MARK TOOL:
+        </Typography>
+        <Chip
+          icon={<Check sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+          label="Right (✔)"
+          size="small"
+          onClick={() => setActiveMarkTool("stamp_right")}
+          sx={{
+            bgcolor: activeMarkTool === "stamp_right" ? "#16a34a" : "rgba(255,255,255,0.12)",
+            color: "#ffffff",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            border: activeMarkTool === "stamp_right" ? "2px solid #86efac" : "1px solid transparent"
+          }}
+        />
+        <Chip
+          icon={<Close sx={{ fontSize: "14px !important", color: "#ffffff !important" }} />}
+          label="Wrong (✘)"
+          size="small"
+          onClick={() => setActiveMarkTool("stamp_wrong")}
+          sx={{
+            bgcolor: activeMarkTool === "stamp_wrong" ? "#dc2626" : "rgba(255,255,255,0.12)",
+            color: "#ffffff",
+            fontWeight: 800,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            border: activeMarkTool === "stamp_wrong" ? "2px solid #fca5a5" : "1px solid transparent"
+          }}
+        />
+        <Chip
+          label="Scroll / View"
+          size="small"
+          onClick={() => setActiveMarkTool("view")}
+          sx={{
+            bgcolor: activeMarkTool === "view" ? "#2563eb" : "rgba(255,255,255,0.12)",
+            color: "#ffffff",
+            fontWeight: 700,
+            fontSize: "0.72rem",
+            cursor: "pointer",
+            border: activeMarkTool === "view" ? "2px solid #93c5fd" : "1px solid transparent"
+          }}
+        />
+        {pageStamps.length > 0 && (
+          <Tooltip title="Undo last mark">
+            <IconButton size="small" onClick={onUndoStamp} sx={{ color: "#f87171", p: 0.4 }}>
+              <RestartAlt sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Typography variant="caption" sx={{ color: "#cbd5e1", fontSize: "0.68rem", ml: 0.5, fontWeight: 700 }}>
+          {activeMarkTool === "view"
+            ? "• Scroll Mode (Marks Disabled)"
+            : "• Click anywhere on any page to mark"}
+        </Typography>
+      </Box>
+
+      {/* Loading Document Indicator */}
+      {loadingDoc && (
+        <Box sx={{ p: 6, textAlign: "center", color: "#ffffff" }}>
+          <CircularProgress size={36} sx={{ color: "#38bdf8", mb: 2 }} />
+          <Typography variant="body2" fontWeight={800} sx={{ color: "#cbd5e1" }}>
+            Loading Answer Script...
+          </Typography>
+        </Box>
+      )}
+
+      {/* Load Error Fallback */}
+      {loadError && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, maxWidth: 600 }}
+          action={
+            <Button size="small" color="inherit" onClick={() => window.open(pdfUrl, "_blank")}>
+              Open in Tab
+            </Button>
+          }
+        >
+          Could not preview script via canvas: {loadError}. Click to open directly.
+        </Alert>
+      )}
+
+      {/* Continuous Vertical Scroll of All Pages */}
+      {pdfDoc &&
+        pageNumbers.map((pNum) => (
+          <SinglePdfPage
+            key={pNum}
+            pdfDoc={pdfDoc}
+            pageNumber={pNum}
+            zoom={zoom}
+            activeMarkTool={activeMarkTool}
+            pageStamps={pageStamps}
+            onAddStamp={onAddStamp}
+            onDeleteStamp={onDeleteStamp}
+            isVerified={verifiedPages.has(pNum)}
+            onPageVisible={onCurrentPageChange}
+          />
+        ))}
+    </Box>
+  );
+});
+
 export function ConductExam2OnScreenMarkingPage() {
   // View mode: 'list' (Assigned courses grid) vs 'marking' (Dedicated scoring workspace)
   const [viewMode, setViewMode] = useState("list");
@@ -213,6 +794,7 @@ export function ConductExam2OnScreenMarkingPage() {
   // ===================== VIEW 1: ASSIGNED COURSES =====================
   const [assignedCourses, setAssignedCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [valuationType, setValuationType] = useState("V1");
 
   const loadAssignedCourses = async () => {
     try {
@@ -230,7 +812,30 @@ export function ConductExam2OnScreenMarkingPage() {
   };
 
   useEffect(() => {
-    loadAssignedCourses();
+    const urlParams = new URLSearchParams(window.location.search);
+    const qpValuation = urlParams.get("valuationtype") || "V1";
+    const qpExam = urlParams.get("examcode");
+    const qpCourse = urlParams.get("coursecode");
+    const qpRegno = urlParams.get("regno");
+
+    if (qpValuation) {
+      setValuationType(qpValuation);
+    }
+
+    if (qpExam && qpCourse) {
+      const targetCourse = {
+        examcode: qpExam,
+        coursecode: qpCourse,
+        paperid: qpCourse,
+        course: qpCourse,
+        valuationtype: qpValuation
+      };
+      setSelectedCourse(targetCourse);
+      setViewMode("marking");
+      loadCourseStudentsAndPaper(targetCourse, qpValuation, qpRegno);
+    } else {
+      loadAssignedCourses();
+    }
   }, []);
 
   // ===================== VIEW 2: MARKING WORKSPACE =====================
@@ -244,9 +849,8 @@ export function ConductExam2OnScreenMarkingPage() {
   const [examinerRecord, setExaminerRecord] = useState(null);
   const [answerBook, setAnswerBook] = useState(null);
 
-  // Timer: tracks evaluation elapsed time for active student
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const timerRef = useRef(null);
+  // Timer: tracks evaluation elapsed time for active student without parent re-renders
+  const timerSecondsRef = useRef(0);
 
   // PDF controls
   const [brightness, setBrightness] = useState(100);
@@ -255,6 +859,8 @@ export function ConductExam2OnScreenMarkingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(42);
   const [verifiedPages, setVerifiedPages] = useState(new Set());
+  const [pageStamps, setPageStamps] = useState([]);
+  const [activeMarkTool, setActiveMarkTool] = useState("stamp_right");
 
   // Dialogs
   const [qpModalOpen, setQpModalOpen] = useState(false);
@@ -270,22 +876,10 @@ export function ConductExam2OnScreenMarkingPage() {
   const [billOpen, setBillOpen] = useState(false);
   const [declaring, setDeclaring] = useState(false);
 
-  // Timer effect
-  useEffect(() => {
-    if (viewMode === "marking" && selectedStudent) {
-      timerRef.current = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [viewMode, selectedStudent]);
-
   const formatTimer = (seconds) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    const hrs = Math.floor((seconds || 0) / 3600);
+    const mins = Math.floor(((seconds || 0) % 3600) / 60);
+    const secs = (seconds || 0) % 60;
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
@@ -293,7 +887,9 @@ export function ConductExam2OnScreenMarkingPage() {
   const handleStartMarking = async (course) => {
     setSelectedCourse(course);
     setViewMode("marking");
-    await loadCourseStudentsAndPaper(course);
+    const activeVal = course.valuationtype || "V1";
+    setValuationType(activeVal);
+    await loadCourseStudentsAndPaper(course, activeVal);
   };
 
   // Back to assigned courses grid
@@ -301,12 +897,18 @@ export function ConductExam2OnScreenMarkingPage() {
     setViewMode("list");
     setSelectedCourse(null);
     setSelectedStudent(null);
-    if (timerRef.current) clearInterval(timerRef.current);
+    setValuationType("V1");
+    if (timerSecondsRef) timerSecondsRef.current = 0;
+    if (typeof window !== "undefined" && window.history?.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
     loadAssignedCourses();
   };
 
   // Load students & question paper for selected course
-  const loadCourseStudentsAndPaper = async (course) => {
+  const loadCourseStudentsAndPaper = async (course, forcedValuationType, targetRegno) => {
+    const activeValType = forcedValuationType || course.valuationtype || valuationType || "V1";
+    setValuationType(activeValType);
     try {
       setLoading(true);
       setError("");
@@ -316,7 +918,9 @@ export function ConductExam2OnScreenMarkingPage() {
           examineremail,
           paperid: course.paperid,
           examcode: course.examcode,
-          coursecode: course.coursecode
+          coursecode: course.coursecode,
+          valuationtype: activeValType,
+          regno: targetRegno || undefined
         }
       });
       const loadedPaper = res.data?.paper || null;
@@ -328,10 +932,17 @@ export function ConductExam2OnScreenMarkingPage() {
       setExaminerRecord(res.data?.examiner || null);
       setFlatQuestions(loadedQuestions);
 
-      // Find first pending student or fallback to first student
-      const firstPending = loadedStudents.find((s) => (s.evaluationstatus || "").toLowerCase() !== "evaluated") || loadedStudents[0];
-      if (firstPending) {
-        await selectStudent(firstPending, course.paperid, loadedPaper, loadedQuestions);
+      // Find target student or first pending or first
+      let studentToSelect = null;
+      if (targetRegno) {
+        studentToSelect = loadedStudents.find((s) => s.regno === targetRegno);
+      }
+      if (!studentToSelect) {
+        studentToSelect = loadedStudents.find((s) => (s.evaluationstatus || "").toLowerCase() !== "evaluated") || loadedStudents[0];
+      }
+
+      if (studentToSelect) {
+        await selectStudent(studentToSelect, course.paperid, loadedPaper, loadedQuestions, activeValType);
       } else {
         setSelectedStudent(null);
       }
@@ -351,13 +962,16 @@ export function ConductExam2OnScreenMarkingPage() {
   }, [flatQuestions]);
 
   // Select a student to evaluate
-  const selectStudent = async (student, activePaperId, currentPaper, questionsList) => {
+  const selectStudent = async (student, activePaperId, currentPaper, questionsList, forcedValuationType) => {
+    const activeValType = forcedValuationType || valuationType || "V1";
     setSelectedStudent(student);
-    setTimerSeconds(0);
+    if (timerSecondsRef) timerSecondsRef.current = 0;
     setCurrentPage(1);
     const pCount = Number(student.pagescount) || 2;
     setTotalPages(pCount > 0 ? pCount : 2);
-    setVerifiedPages(new Set(student.verifiedpages || []));
+    // Blind marking: for re-evaluations (V2, V3, V4), start with completely fresh verified pages and empty stamps
+    setVerifiedPages(activeValType === "V1" ? new Set(student.verifiedpages || []) : new Set());
+    setPageStamps(activeValType === "V1" && Array.isArray(student.pagestamps) ? student.pagestamps : []);
     setMarksMap({});
     setMcqMap({});
     setCommentMap({});
@@ -368,7 +982,8 @@ export function ConductExam2OnScreenMarkingPage() {
         params: {
           colid: global1.colid,
           paperid: activePaperId || selectedCourse?.paperid,
-          regno: student.regno
+          regno: student.regno,
+          valuationtype: activeValType
         }
       });
       const savedMarks = res.data?.marks || {};
@@ -383,6 +998,12 @@ export function ConductExam2OnScreenMarkingPage() {
       setMarksMap(nextMarks);
       setMcqMap(nextMcq);
       setCommentMap(nextComments);
+      if (Array.isArray(res.data?.verifiedpages) && res.data.verifiedpages.length > 0) {
+        setVerifiedPages(new Set(res.data.verifiedpages));
+      }
+      if (Array.isArray(res.data?.pagestamps) && res.data.pagestamps.length > 0) {
+        setPageStamps(res.data.pagestamps);
+      }
       if (res.data?.answerbook) {
         setAnswerBook(res.data.answerbook);
         if (Number(res.data.answerbook.pagescount) > 0) {
@@ -415,17 +1036,95 @@ export function ConductExam2OnScreenMarkingPage() {
     setMarksMap((prev) => ({ ...prev, [q.questionid]: val }));
   };
 
-  // Tick tool: mark current page as verified and advance
-  const handleMarkPageVerified = () => {
+  // Right marking action: mark active page verified & place Right mark
+  const handleMarkRight = (autoAdvance = false) => {
+    setActiveMarkTool("stamp_right");
+    const existingOnPage = pageStamps.filter((s) => s.page === currentPage);
+    const newStamp = {
+      id: Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      page: currentPage,
+      type: "right",
+      x: 88,
+      y: 12 + Math.min(existingOnPage.length * 10, 70),
+      timestamp: new Date().toISOString()
+    };
+    setPageStamps((prev) => [...prev, newStamp]);
     setVerifiedPages((prev) => {
       const next = new Set(prev);
       next.add(currentPage);
       return next;
     });
-    if (currentPage < totalPages) {
+    if (autoAdvance && currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
     }
   };
+
+  // Wrong marking action: mark active page verified & place Wrong mark
+  const handleMarkWrong = (autoAdvance = false) => {
+    setActiveMarkTool("stamp_wrong");
+    const existingOnPage = pageStamps.filter((s) => s.page === currentPage);
+    const newStamp = {
+      id: Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      page: currentPage,
+      type: "wrong",
+      x: 88,
+      y: 12 + Math.min(existingOnPage.length * 10, 70),
+      timestamp: new Date().toISOString()
+    };
+    setPageStamps((prev) => [...prev, newStamp]);
+    setVerifiedPages((prev) => {
+      const next = new Set(prev);
+      next.add(currentPage);
+      return next;
+    });
+    if (autoAdvance && currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  // Interactive click on PDF overlay to place a mark at exact click coordinates
+  const handleOverlayClick = (e) => {
+    if (activeMarkTool === "view") return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    const newStamp = {
+      id: Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      page: currentPage,
+      type: activeMarkTool === "stamp_wrong" ? "wrong" : "right",
+      x: Math.max(2, Math.min(96, Number(x.toFixed(2)))),
+      y: Math.max(2, Math.min(96, Number(y.toFixed(2)))),
+      timestamp: new Date().toISOString()
+    };
+
+    setPageStamps((prev) => [...prev, newStamp]);
+    setVerifiedPages((prev) => {
+      const next = new Set(prev);
+      next.add(currentPage);
+      return next;
+    });
+  };
+
+  const handleDeleteStamp = (id) => {
+    setPageStamps((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleUndoStamp = () => {
+    setPageStamps((prev) => {
+      const pageStampsCurrent = prev.filter((s) => s.page === currentPage);
+      if (!pageStampsCurrent.length) return prev;
+      const last = pageStampsCurrent[pageStampsCurrent.length - 1];
+      return prev.filter((s) => s.id !== last.id);
+    });
+  };
+
+  const handleClearPageStamps = () => {
+    setPageStamps((prev) => prev.filter((s) => s.page !== currentPage));
+  };
+
+  // Tick tool legacy alias
+  const handleMarkPageVerified = () => handleMarkRight(true);
 
   // Save question marks only
   const handleSaveMarksOnly = async () => {
@@ -444,9 +1143,12 @@ export function ConductExam2OnScreenMarkingPage() {
         paperid: selectedCourse.paperid,
         student: selectedStudent,
         marks: marksPayload,
+        valuationtype: valuationType,
+        verifiedpages: Array.from(verifiedPages),
+        pagestamps: pageStamps,
         user: examineremail
       });
-      setMessage("Question marks saved successfully.");
+      setMessage("Question marks and page stamps saved successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save question marks.");
     } finally {
@@ -477,6 +1179,9 @@ export function ConductExam2OnScreenMarkingPage() {
         paperid: selectedCourse.paperid,
         student: selectedStudent,
         marks: marksPayload,
+        valuationtype: valuationType,
+        verifiedpages: Array.from(verifiedPages),
+        pagestamps: pageStamps,
         user: examineremail
       });
 
@@ -485,8 +1190,11 @@ export function ConductExam2OnScreenMarkingPage() {
         paperid: selectedCourse.paperid,
         student: selectedStudent,
         ...paper,
-        evaluationTimeSeconds: timerSeconds,
+        valuationtype: valuationType,
+        evaluationTimeSeconds: timerSecondsRef.current || 0,
         verifiedPages: Array.from(verifiedPages),
+        verifiedpages: Array.from(verifiedPages),
+        pagestamps: pageStamps,
         user: examineremail
       });
 
@@ -494,7 +1202,7 @@ export function ConductExam2OnScreenMarkingPage() {
       const currentIdx = students.findIndex((s) => s._id === selectedStudent._id);
       const scriptLabel = `Answer Script #${currentIdx >= 0 ? currentIdx + 1 : 1}`;
 
-      setMessage(`${scriptLabel} evaluated successfully! Total: ${finalizeRes.data?.total || 0}. Evaluation Time: ${formatTimer(timerSeconds)}.`);
+      setMessage(`${scriptLabel} evaluated successfully! Total: ${finalizeRes.data?.total || 0}. Evaluation Time: ${formatTimer(timerSecondsRef.current || 0)}.`);
 
       if (nextStudentId) {
         const refreshedRes = await ep1.get("/api/v2/conductexam2/onscreen-students", {
@@ -587,7 +1295,15 @@ export function ConductExam2OnScreenMarkingPage() {
   }, [flatQuestions]);
 
   const activeScriptUrl = answerBook?.answerbookurl || selectedStudent?.answerbookurl || "";
-  const iframeUrl = activeScriptUrl ? `${activeScriptUrl}#page=${currentPage}` : "";
+  const resolvedPdfUrl = useMemo(() => {
+    if (!activeScriptUrl) return "";
+    if (activeScriptUrl.startsWith("blob:") || activeScriptUrl.startsWith("data:")) return activeScriptUrl;
+    const backendBase = (ep1.defaults.baseURL || window.location.origin).replace(/\/+$/, "");
+    if (activeScriptUrl.startsWith("/")) {
+      return `${backendBase}${activeScriptUrl}`;
+    }
+    return `${backendBase}/api/v2/conductexam2/proxy-pdf?url=${encodeURIComponent(activeScriptUrl)}`;
+  }, [activeScriptUrl]);
 
   // Compliance status
   const isAccepted = Boolean(examinerRecord?.acceptancestatus === "Accepted");
@@ -973,6 +1689,14 @@ export function ConductExam2OnScreenMarkingPage() {
                   {selectedCourse?.isNew && (
                     <Chip label="NEW" size="small" color="error" sx={{ fontWeight: 800, height: 20, fontSize: "0.65rem" }} />
                   )}
+                  {valuationType !== "V1" && (
+                    <Chip
+                      label={`Blind Re-evaluation (${valuationType === "V2" ? "Re-evaluator 1" : valuationType === "V3" ? "Re-evaluator 2" : "Re-evaluator 3"})`}
+                      size="small"
+                      color="warning"
+                      sx={{ fontWeight: 800, height: 22, fontSize: "0.75rem", bgcolor: "#f59e0b", color: "#ffffff" }}
+                    />
+                  )}
                 </Stack>
                 <Typography variant="caption" color="text.secondary">
                   Exam: {selectedCourse?.exam} ({selectedCourse?.examcode}) • Reg: {selectedCourse?.regulation}
@@ -1041,10 +1765,11 @@ export function ConductExam2OnScreenMarkingPage() {
 
         {/* Main 3-Column Split Workspace */}
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* ================= COLUMN 1: QUESTION STRUCTURE & SCORING TABLE ================= */}
+          {/* ================= COLUMN 1: QUESTION STRUCTURE & SCORING TABLE (20%) ================= */}
           <Box
             sx={{
-              width: hasAnyMCQ ? 330 : 270,
+              width: "20%",
+              flex: "0 0 20%",
               flexShrink: 0,
               display: "flex",
               flexDirection: "column",
@@ -1054,10 +1779,10 @@ export function ConductExam2OnScreenMarkingPage() {
           >
             {/* Table Header Banner */}
             <Box sx={{ p: 1.25, borderBottom: "1px solid #e2e8f0", bgcolor: "#f8fafc" }}>
-              <Typography variant="subtitle2" fontWeight={900} color="#0f172a">
+              <Typography variant="subtitle2" fontWeight={900} color="#0f172a" sx={{ fontSize: "0.88rem" }}>
                 Question Structure &amp; Marks
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: "0.72rem" }}>
                 From Paper Setter • {flatQuestions.length} Questions
               </Typography>
             </Box>
@@ -1066,11 +1791,11 @@ export function ConductExam2OnScreenMarkingPage() {
             <TableContainer sx={{ flex: 1, overflowY: "auto" }}>
               <Table size="small" stickyHeader>
                 <TableHead>
-                  <TableRow sx={{ "& th": { bgcolor: "#f1f5f9", fontWeight: 900, fontSize: "0.75rem", py: 0.75 } }}>
-                    <TableCell sx={{ width: hasAnyMCQ ? "22%" : "28%" }}>Q.No.</TableCell>
-                    <TableCell sx={{ width: hasAnyMCQ ? "20%" : "26%" }}>Max.</TableCell>
-                    <TableCell sx={{ width: hasAnyMCQ ? "28%" : "46%" }}>Marks</TableCell>
-                    {hasAnyMCQ && <TableCell sx={{ width: "30%" }}>MCQ</TableCell>}
+                  <TableRow sx={{ "& th": { bgcolor: "#f1f5f9", fontWeight: 900, fontSize: "0.74rem", py: 0.75, px: 0.5 } }}>
+                    <TableCell sx={{ width: hasAnyMCQ ? "22%" : "25%", px: 0.5 }}>Q.No.</TableCell>
+                    <TableCell sx={{ width: hasAnyMCQ ? "16%" : "20%", px: 0.5 }}>Max</TableCell>
+                    <TableCell sx={{ width: hasAnyMCQ ? "32%" : "55%", px: 0.5 }}>Marks</TableCell>
+                    {hasAnyMCQ && <TableCell sx={{ width: "30%", px: 0.5 }}>MCQ</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1079,14 +1804,18 @@ export function ConductExam2OnScreenMarkingPage() {
                     const currentMcq = mcqMap[q.questionid] || "";
                     const hasComment = Boolean(commentMap[q.questionid]);
                     return (
-                      <TableRow key={q.questionid} hover sx={{ "& td": { py: 0.4, px: 0.75 } }}>
-                        <TableCell sx={{ fontWeight: 800, fontSize: "0.8rem", color: "#1e293b" }}>
-                          {q.questionlabel || "Q"}
+                      <TableRow key={q.questionid} hover sx={{ "& td": { py: 0.7, px: 0.5 } }}>
+                        <TableCell sx={{ fontWeight: 900, fontSize: "0.78rem", color: "#1e293b", px: 0.5 }}>
+                          <Tooltip title={q.question || "Question"} placement="right" arrow>
+                            <Box sx={{ cursor: "default", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {q.questionlabel || "Q"}
+                            </Box>
+                          </Tooltip>
                         </TableCell>
-                        <TableCell sx={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 700 }}>
+                        <TableCell sx={{ fontSize: "0.8rem", color: "#475569", fontWeight: 800, px: 0.5 }}>
                           {q.maxmarks}
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ px: 0.5 }}>
                           <Stack direction="row" spacing={0.5} alignItems="center">
                             <TextField
                               size="small"
@@ -1097,9 +1826,9 @@ export function ConductExam2OnScreenMarkingPage() {
                                 min: 0,
                                 max: q.maxmarks,
                                 step: 0.5,
-                                style: { padding: "3px 4px", fontSize: "0.8rem", fontWeight: 800, textAlign: "center" }
+                                style: { padding: "3px 4px", fontSize: "0.8rem", fontWeight: 900, textAlign: "center" }
                               }}
-                              sx={{ width: 48 }}
+                              sx={{ width: 44 }}
                             />
                             <Tooltip title={hasComment ? `Remark: ${commentMap[q.questionid]}` : "Add Question Remark"}>
                               <IconButton
@@ -1108,7 +1837,7 @@ export function ConductExam2OnScreenMarkingPage() {
                                   setCommentDialogQuestion(q);
                                   setTempComment(commentMap[q.questionid] || "");
                                 }}
-                                sx={{ color: hasComment ? "#2563eb" : "#cbd5e1", p: 0.2 }}
+                                sx={{ color: hasComment ? "#2563eb" : "#94a3b8", p: 0.2 }}
                               >
                                 <Comment sx={{ fontSize: 15 }} />
                               </IconButton>
@@ -1116,7 +1845,7 @@ export function ConductExam2OnScreenMarkingPage() {
                           </Stack>
                         </TableCell>
                         {hasAnyMCQ && (
-                          <TableCell>
+                          <TableCell sx={{ px: 0.5 }}>
                             {q.isMCQ ? (
                               <Select
                                 size="small"
@@ -1124,18 +1853,19 @@ export function ConductExam2OnScreenMarkingPage() {
                                 onChange={(e) => handleMcqChange(q, e.target.value)}
                                 displayEmpty
                                 sx={{
-                                  fontSize: "0.72rem",
+                                  fontSize: "0.68rem",
                                   height: 26,
-                                  "& .MuiSelect-select": { py: "2px", px: "4px" }
+                                  width: "100%",
+                                  "& .MuiSelect-select": { py: "2px", px: "3px" }
                                 }}
                               >
-                                <MenuItem value="" sx={{ fontSize: "0.72rem" }}>--Select--</MenuItem>
-                                <MenuItem value="Correct" sx={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: 800 }}>Correct</MenuItem>
-                                <MenuItem value="Incorrect" sx={{ fontSize: "0.72rem", color: "#dc2626", fontWeight: 800 }}>Incorrect</MenuItem>
-                                <MenuItem value="Not Answered" sx={{ fontSize: "0.72rem", color: "#64748b" }}>Not Answered</MenuItem>
+                                <MenuItem value="" sx={{ fontSize: "0.68rem" }}>-</MenuItem>
+                                <MenuItem value="Correct" sx={{ fontSize: "0.68rem", color: "#16a34a", fontWeight: 800 }}>Correct</MenuItem>
+                                <MenuItem value="Incorrect" sx={{ fontSize: "0.68rem", color: "#dc2626", fontWeight: 800 }}>Incorrect</MenuItem>
+                                <MenuItem value="Not Answered" sx={{ fontSize: "0.68rem", color: "#64748b" }}>Not Answered</MenuItem>
                               </Select>
                             ) : (
-                              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 700, pl: 1 }}>
+                              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 700, pl: 0.5 }}>
                                 —
                               </Typography>
                             )}
@@ -1155,12 +1885,12 @@ export function ConductExam2OnScreenMarkingPage() {
               </Table>
             </TableContainer>
 
-            {/* Bottom Dark Teal Bar matching screenshot */}
+            {/* Bottom Dark Teal Bar */}
             <Box
               sx={{
                 bgcolor: "#0f766e",
                 color: "#ffffff",
-                p: 1.25,
+                p: 1,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -1171,9 +1901,9 @@ export function ConductExam2OnScreenMarkingPage() {
               <Chip
                 label="NA"
                 size="small"
-                sx={{ bgcolor: "#134e4a", color: "#ccfbf1", fontWeight: 900, height: 24, fontSize: "0.75rem" }}
+                sx={{ bgcolor: "#134e4a", color: "#ccfbf1", fontWeight: 900, height: 22, fontSize: "0.72rem" }}
               />
-              <Typography variant="body2" sx={{ fontWeight: 900, letterSpacing: 0.5, fontSize: "0.85rem" }}>
+              <Typography variant="body2" sx={{ fontWeight: 900, letterSpacing: 0.5, fontSize: "0.82rem" }}>
                 Total: {totalObtainedMarks} / {maxTotalMarks}
               </Typography>
               <Button
@@ -1185,8 +1915,8 @@ export function ConductExam2OnScreenMarkingPage() {
                   color: "#042f2e",
                   fontWeight: 900,
                   fontSize: "0.7rem",
-                  py: 0.4,
-                  px: 1.25,
+                  py: 0.3,
+                  px: 1,
                   minWidth: 0,
                   "&:hover": { bgcolor: "#2dd4bf" }
                 }}
@@ -1196,10 +1926,12 @@ export function ConductExam2OnScreenMarkingPage() {
             </Box>
           </Box>
 
-          {/* ================= COLUMN 2: PDF VIEWER WITH MARGIN GUIDE ================= */}
+          {/* ================= COLUMN 2: PDF VIEWER WITH MARGIN GUIDE (65%) ================= */}
           <Box
             sx={{
-              flex: 1,
+              width: "65%",
+              flex: "0 0 65%",
+              flexShrink: 0,
               display: "flex",
               flexDirection: "column",
               bgcolor: "#475569",
@@ -1260,10 +1992,10 @@ export function ConductExam2OnScreenMarkingPage() {
                   left: 0,
                   top: 0,
                   bottom: 0,
-                  width: 34,
-                  bgcolor: "rgba(239, 68, 68, 0.12)",
+                  width: 22,
+                  bgcolor: "rgba(239, 68, 68, 0.08)",
                   borderRight: "2px dashed #ef4444",
-                  zIndex: 2,
+                  zIndex: 6,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1275,9 +2007,9 @@ export function ConductExam2OnScreenMarkingPage() {
                     writingMode: "vertical-rl",
                     transform: "rotate(180deg)",
                     color: "#f87171",
-                    fontSize: "0.65rem",
+                    fontSize: "0.58rem",
                     fontWeight: 800,
-                    letterSpacing: 2,
+                    letterSpacing: 1.5,
                     textTransform: "uppercase"
                   }}
                 >
@@ -1285,33 +2017,38 @@ export function ConductExam2OnScreenMarkingPage() {
                 </Typography>
               </Box>
 
-              {/* PDF Viewer / Iframe Container with Brightness, Contrast & Zoom Filters */}
+              {/* Continuous Scrollable PDF Viewer Container */}
               {activeScriptUrl ? (
-                <Box
-                  sx={{
-                    flex: 1,
-                    height: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    overflow: "auto",
-                    filter: `brightness(${brightness}%) contrast(${contrast}%)`,
-                    transition: "filter 0.2s ease"
+                <AnswerScriptCanvasViewer
+                  pdfUrl={resolvedPdfUrl}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onTotalPagesDetected={(num) => {
+                    if (num && num !== totalPages) setTotalPages(num);
                   }}
-                >
-                  <iframe
-                    key={`${selectedStudent?._id}_p${currentPage}`}
-                    src={iframeUrl}
-                    title="Student Answer Script"
-                    width="100%"
-                    height="100%"
-                    style={{
-                      border: "none",
-                      transform: `scale(${zoom / 100})`,
-                      transformOrigin: "top center",
-                      transition: "transform 0.15s ease"
-                    }}
-                  />
-                </Box>
+                  onCurrentPageChange={(pageNum) => {
+                    if (pageNum && pageNum !== currentPage) setCurrentPage(pageNum);
+                  }}
+                  brightness={brightness}
+                  contrast={contrast}
+                  zoom={zoom}
+                  activeMarkTool={activeMarkTool}
+                  pageStamps={pageStamps}
+                  verifiedPages={verifiedPages}
+                  onAddStamp={(newStamp) => {
+                    setPageStamps((prev) => [...prev, newStamp]);
+                    setVerifiedPages((prev) => {
+                      const next = new Set(prev);
+                      next.add(newStamp.page);
+                      return next;
+                    });
+                  }}
+                  onDeleteStamp={(id) => {
+                    setPageStamps((prev) => prev.filter((s) => s.id !== id));
+                  }}
+                  onUndoStamp={handleUndoStamp}
+                  setActiveMarkTool={setActiveMarkTool}
+                />
               ) : (
                 <Box sx={{ p: 6, textAlign: "center", color: "#cbd5e1", m: "auto" }}>
                   <PictureAsPdf sx={{ fontSize: 64, color: "#64748b", mb: 2 }} />
@@ -1330,7 +2067,7 @@ export function ConductExam2OnScreenMarkingPage() {
               )}
             </Box>
 
-            {/* Bottom Numbered Page Pills Bar (Red = Unverified, Green = Verified) */}
+            {/* Bottom Numbered Page Pills Bar */}
             <Box
               sx={{
                 p: 1,
@@ -1353,7 +2090,13 @@ export function ConductExam2OnScreenMarkingPage() {
                   return (
                     <Box
                       key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
+                      onClick={() => {
+                        setCurrentPage(pageNum);
+                        const el = document.getElementById(`pdf-page-${pageNum}`);
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                      }}
                       sx={{
                         width: 36,
                         height: 36,
@@ -1384,13 +2127,14 @@ export function ConductExam2OnScreenMarkingPage() {
             </Box>
           </Box>
 
-          {/* ================= COLUMN 3: RIGHT FLOATING TOOL RAIL ================= */}
+          {/* ================= COLUMN 3: RIGHT FLOATING TOOL RAIL (15%) ================= */}
           <Stack
-            spacing={1.25}
+            spacing={1.5}
             alignItems="center"
             sx={{
-              width: 82,
-              p: 1,
+              width: "15%",
+              flex: "0 0 15%",
+              p: 1.25,
               bgcolor: "#ffffff",
               borderLeft: "1px solid #cbd5e1",
               height: "100%",
@@ -1398,59 +2142,45 @@ export function ConductExam2OnScreenMarkingPage() {
               flexShrink: 0
             }}
           >
-            {/* Red Timer Box */}
-            <Box
-              sx={{
-                bgcolor: "#dc2626",
-                color: "#ffffff",
-                borderRadius: 1.5,
-                px: 0.5,
-                py: 0.75,
-                width: "100%",
-                textAlign: "center",
-                boxShadow: "0 2px 5px rgba(220,38,38,0.3)"
-              }}
-            >
-              <Typography variant="caption" sx={{ fontSize: "0.6rem", display: "block", opacity: 0.9, fontWeight: 800 }}>
-                TIMER
-              </Typography>
-              <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 900, fontSize: "0.8rem", letterSpacing: 0.5 }}>
-                {formatTimer(timerSeconds)}
-              </Typography>
-            </Box>
+            {/* Red Timer Box - Isolated component to avoid re-rendering entire page on 1s interval */}
+            <TimerBadge activeStudentId={selectedStudent?._id} timerSecondsRef={timerSecondsRef} />
 
-            {/* Brightness Slider */}
-            <Tooltip title={`Brightness: ${brightness}%`} placement="left">
-              <Box sx={{ width: "100%", textAlign: "center" }}>
-                <Brightness6 fontSize="small" sx={{ color: "#64748b" }} />
+            {/* Brightness Control */}
+            <Box sx={{ width: "100%", px: 0.5 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tooltip title="Brightness">
+                  <Brightness6 fontSize="small" sx={{ color: "#64748b" }} />
+                </Tooltip>
                 <Slider
                   size="small"
                   value={brightness}
                   min={50}
                   max={200}
                   onChange={(e, val) => setBrightness(val)}
-                  sx={{ width: "80%", my: 0.2 }}
+                  sx={{ my: 0.2 }}
                 />
-              </Box>
-            </Tooltip>
+              </Stack>
+            </Box>
 
-            {/* Contrast Slider */}
-            <Tooltip title={`Contrast: ${contrast}%`} placement="left">
-              <Box sx={{ width: "100%", textAlign: "center" }}>
-                <Contrast fontSize="small" sx={{ color: "#64748b" }} />
+            {/* Contrast Control */}
+            <Box sx={{ width: "100%", px: 0.5 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tooltip title="Contrast">
+                  <Contrast fontSize="small" sx={{ color: "#64748b" }} />
+                </Tooltip>
                 <Slider
                   size="small"
                   value={contrast}
                   min={50}
                   max={200}
                   onChange={(e, val) => setContrast(val)}
-                  sx={{ width: "80%", my: 0.2 }}
+                  sx={{ my: 0.2 }}
                 />
-              </Box>
-            </Tooltip>
+              </Stack>
+            </Box>
 
             {/* Zoom Controls */}
-            <Stack direction="row" spacing={0.5}>
+            <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
               <Tooltip title="Zoom In (+)">
                 <IconButton size="small" onClick={() => setZoom((z) => Math.min(z + 15, 200))} sx={{ bgcolor: "#f1f5f9" }}>
                   <ZoomIn fontSize="small" />
@@ -1461,52 +2191,97 @@ export function ConductExam2OnScreenMarkingPage() {
                   <ZoomOut fontSize="small" />
                 </IconButton>
               </Tooltip>
+              <Tooltip title="Reset View">
+                <IconButton size="small" onClick={() => { setBrightness(100); setContrast(100); setZoom(100); }} sx={{ bgcolor: "#f1f5f9" }}>
+                  <RestartAlt fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Stack>
 
-            {/* Reset Controls */}
-            <Tooltip title="Reset View" placement="left">
-              <IconButton size="small" onClick={() => { setBrightness(100); setContrast(100); setZoom(100); }}>
-                <RestartAlt fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <Divider sx={{ width: "100%", my: 0.5 }} />
+
+            {/* ================= TWO MARKING BUTTONS: RIGHT (✔) & WRONG (✘) ================= */}
+            <Box sx={{ width: "100%", textAlign: "center" }}>
+              <Typography variant="caption" sx={{ fontSize: "0.68rem", fontWeight: 900, color: "#475569", textTransform: "uppercase", letterSpacing: 0.5, display: "block", mb: 0.75 }}>
+                Mark Script Page
+              </Typography>
+              <Stack direction="row" spacing={1.5} justifyContent="center" alignItems="center">
+                {/* Button 1: Right (✔) */}
+                <Tooltip title="Activate Right (✔) Tool — Click anywhere on script to mark" placement="left">
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <IconButton
+                      onClick={() => {
+                        setActiveMarkTool("stamp_right");
+                        setMessage("Right (✔) tool active. Click anywhere on the script page to place the mark.");
+                      }}
+                      sx={{
+                        bgcolor: activeMarkTool === "stamp_right" ? "#15803d" : "#16a34a",
+                        color: "#ffffff",
+                        width: 48,
+                        height: 48,
+                        boxShadow: activeMarkTool === "stamp_right"
+                          ? "0 0 14px rgba(22,163,74,0.9)"
+                          : "0 3px 8px rgba(22,163,74,0.4)",
+                        border: activeMarkTool === "stamp_right" ? "3px solid #86efac" : "2px solid transparent",
+                        transition: "all 0.15s ease",
+                        "&:hover": { bgcolor: "#15803d", transform: "scale(1.06)" }
+                      }}
+                    >
+                      <Check sx={{ fontSize: 30, fontWeight: "bold" }} />
+                    </IconButton>
+                    <Typography variant="caption" sx={{ fontSize: "0.72rem", fontWeight: 900, color: "#16a34a", mt: 0.5 }}>
+                      Right (✔)
+                    </Typography>
+                  </Box>
+                </Tooltip>
+
+                {/* Button 2: Wrong (✘) */}
+                <Tooltip title="Activate Wrong (✘) Tool — Click anywhere on script to mark" placement="left">
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <IconButton
+                      onClick={() => {
+                        setActiveMarkTool("stamp_wrong");
+                        setMessage("Wrong (✘) tool active. Click anywhere on the script page to place the mark.");
+                      }}
+                      sx={{
+                        bgcolor: activeMarkTool === "stamp_wrong" ? "#b91c1c" : "#dc2626",
+                        color: "#ffffff",
+                        width: 48,
+                        height: 48,
+                        boxShadow: activeMarkTool === "stamp_wrong"
+                          ? "0 0 14px rgba(220,38,38,0.9)"
+                          : "0 3px 8px rgba(220,38,38,0.4)",
+                        border: activeMarkTool === "stamp_wrong" ? "3px solid #fca5a5" : "2px solid transparent",
+                        transition: "all 0.15s ease",
+                        "&:hover": { bgcolor: "#b91c1c", transform: "scale(1.06)" }
+                      }}
+                    >
+                      <Close sx={{ fontSize: 30, fontWeight: "bold" }} />
+                    </IconButton>
+                    <Typography variant="caption" sx={{ fontSize: "0.72rem", fontWeight: 900, color: "#dc2626", mt: 0.5 }}>
+                      Wrong (✘)
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </Stack>
+            </Box>
 
             <Divider sx={{ width: "100%", my: 0.5 }} />
 
-            {/* Tick Tool: Mark Page Checked & Advance */}
-            <Tooltip title={`Mark Page ${currentPage} as Checked & Advance`} placement="left">
-              <IconButton
-                onClick={handleMarkPageVerified}
-                sx={{
-                  bgcolor: verifiedPages.has(currentPage) ? "#15803d" : "#16a34a",
-                  color: "#ffffff",
-                  width: 48,
-                  height: 48,
-                  boxShadow: "0 3px 6px rgba(22,163,74,0.4)",
-                  "&:hover": { bgcolor: "#15803d", transform: "scale(1.06)" }
-                }}
-              >
-                <Check sx={{ fontSize: 32, fontWeight: "bold" }} />
-              </IconButton>
-            </Tooltip>
-            <Typography variant="caption" sx={{ fontSize: "0.65rem", fontWeight: 800, color: "#16a34a", textAlign: "center" }}>
-              Verify Page
-            </Typography>
-
-            <Divider sx={{ width: "100%", my: 0.5 }} />
-
-            {/* Question Paper Button (Blue) */}
+            {/* Action Buttons with icons & full readable text */}
             <Tooltip title="View Official Question Paper" placement="left">
               <Button
                 fullWidth
                 variant="contained"
                 size="small"
+                startIcon={<MenuBook sx={{ fontSize: 18 }} />}
                 onClick={() => setQpModalOpen(true)}
                 sx={{
                   bgcolor: "#2563eb",
                   color: "#ffffff",
-                  fontSize: "0.62rem",
+                  fontSize: "0.75rem",
                   fontWeight: 800,
-                  py: 0.75,
+                  py: 0.8,
                   minWidth: 0,
                   textTransform: "none",
                   "&:hover": { bgcolor: "#1d4ed8" }
@@ -1516,41 +2291,41 @@ export function ConductExam2OnScreenMarkingPage() {
               </Button>
             </Tooltip>
 
-            {/* Solution Button (Dark Blue) */}
             <Tooltip title="View Model Answers / Solutions" placement="left">
               <Button
                 fullWidth
                 variant="contained"
                 size="small"
+                startIcon={<AssignmentTurnedIn sx={{ fontSize: 18 }} />}
                 onClick={() => setSolutionModalOpen(true)}
                 sx={{
                   bgcolor: "#1e3a8a",
                   color: "#ffffff",
-                  fontSize: "0.62rem",
+                  fontSize: "0.75rem",
                   fontWeight: 800,
-                  py: 0.75,
+                  py: 0.8,
                   minWidth: 0,
                   textTransform: "none",
                   "&:hover": { bgcolor: "#172554" }
                 }}
               >
-                Solution
+                Solutions
               </Button>
             </Tooltip>
 
-            {/* Reject Script Button (Red) */}
             <Tooltip title="Reject Answer Script" placement="left">
               <Button
                 fullWidth
                 variant="contained"
                 size="small"
+                startIcon={<Cancel sx={{ fontSize: 18 }} />}
                 onClick={() => setRejectModalOpen(true)}
                 sx={{
                   bgcolor: "#dc2626",
                   color: "#ffffff",
-                  fontSize: "0.62rem",
+                  fontSize: "0.75rem",
                   fontWeight: 800,
-                  py: 0.75,
+                  py: 0.8,
                   minWidth: 0,
                   textTransform: "none",
                   "&:hover": { bgcolor: "#b91c1c" }
@@ -1560,7 +2335,6 @@ export function ConductExam2OnScreenMarkingPage() {
               </Button>
             </Tooltip>
 
-            {/* Submit Button (Green - Strictly Disabled until all pages are verified) */}
             <Tooltip
               title={
                 verifiedPages.size < totalPages
@@ -1569,19 +2343,20 @@ export function ConductExam2OnScreenMarkingPage() {
               }
               placement="left"
             >
-              <span>
+              <Box sx={{ width: "100%" }}>
                 <Button
                   fullWidth
                   variant="contained"
                   size="small"
+                  startIcon={<CheckCircle sx={{ fontSize: 18 }} />}
                   onClick={handleSubmitEvaluation}
                   disabled={verifiedPages.size < totalPages || loading}
                   sx={{
                     bgcolor: "#16a34a",
                     color: "#ffffff",
-                    fontSize: "0.68rem",
+                    fontSize: "0.8rem",
                     fontWeight: 900,
-                    py: 1,
+                    py: 1.1,
                     minWidth: 0,
                     textTransform: "none",
                     "&:hover": { bgcolor: "#15803d" },
@@ -1593,7 +2368,7 @@ export function ConductExam2OnScreenMarkingPage() {
                 >
                   Submit
                 </Button>
-              </span>
+              </Box>
             </Tooltip>
           </Stack>
         </Box>

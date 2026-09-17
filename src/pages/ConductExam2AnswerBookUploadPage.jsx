@@ -30,12 +30,14 @@ import {
   Refresh,
   CheckCircle,
   HourglassEmpty,
-  School,
   Close,
   OpenInNew,
   Download,
   FilterAlt,
-  InfoOutlined
+  InfoOutlined,
+  Edit,
+  Assessment,
+  Save
 } from "@mui/icons-material";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -83,6 +85,17 @@ export default function ConductExam2AnswerBookUploadPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // Single Upload Dialog with CN
+  const [singleUploadOpen, setSingleUploadOpen] = useState(false);
+  const [singleCn, setSingleCn] = useState("");
+  const [singleFile, setSingleFile] = useState(null);
+
+  // Standalone Edit CN Dialog State
+  const [cnModalOpen, setCnModalOpen] = useState(false);
+  const [editingCnRow, setEditingCnRow] = useState(null);
+  const [standaloneCn, setStandaloneCn] = useState("");
+  const [savingCn, setSavingCn] = useState(false);
+
   // Bulk Upload Dialog State
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkFiles, setBulkFiles] = useState([]);
@@ -93,7 +106,6 @@ export default function ConductExam2AnswerBookUploadPage() {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingStudent, setViewingStudent] = useState(null);
 
-  const singleFileInputRef = useRef(null);
   const bulkFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -154,58 +166,112 @@ export default function ConductExam2AnswerBookUploadPage() {
     }
   };
 
-  // Trigger single file selection
+  // Trigger single file upload & CN dialog
   const handleSingleUploadClick = (studentRow) => {
     setSingleStudentTarget(studentRow);
-    if (singleFileInputRef.current) {
-      singleFileInputRef.current.value = "";
-      singleFileInputRef.current.click();
-    }
+    setSingleCn(studentRow.cn || "");
+    setSingleFile(null);
+    setSingleUploadOpen(true);
   };
 
-  // Process single file upload
-  const handleSingleFileSelected = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !singleStudentTarget) return;
+  // Submit single file upload with CN
+  const handleSingleUploadSubmit = async () => {
+    if (!singleStudentTarget) return;
+    if (!singleFile && !singleStudentTarget.answerbookurl) {
+      setError("Please select an answer book file (.pdf) to upload.");
+      return;
+    }
 
     try {
       setUploadingSingle(true);
       setError("");
       setMessage("");
 
-      const formData = new FormData();
-      formData.append("colid", global1.colid);
-      formData.append("academicyear", singleStudentTarget.academicyear);
-      formData.append("regulation", singleStudentTarget.regulation || "");
-      formData.append("exam", singleStudentTarget.exam);
-      formData.append("examcode", singleStudentTarget.examcode);
-      formData.append("program", singleStudentTarget.program || "");
-      formData.append("programcode", singleStudentTarget.programcode);
-      formData.append("course", singleStudentTarget.course);
-      formData.append("coursecode", singleStudentTarget.coursecode);
-      formData.append("student", singleStudentTarget.student);
-      formData.append("regno", singleStudentTarget.regno);
-      formData.append("seatno", singleStudentTarget.seatno || "");
-      formData.append("examdate", singleStudentTarget.examdate || "");
-      formData.append("examslot", singleStudentTarget.examslot || "");
-      formData.append("user", global1.user || global1.email || "evaluator");
-      formData.append("file", file);
+      if (singleFile) {
+        const formData = new FormData();
+        formData.append("colid", global1.colid);
+        formData.append("academicyear", singleStudentTarget.academicyear);
+        formData.append("regulation", singleStudentTarget.regulation || "");
+        formData.append("exam", singleStudentTarget.exam);
+        formData.append("examcode", singleStudentTarget.examcode);
+        formData.append("program", singleStudentTarget.program || "");
+        formData.append("programcode", singleStudentTarget.programcode);
+        formData.append("course", singleStudentTarget.course);
+        formData.append("coursecode", singleStudentTarget.coursecode);
+        formData.append("student", singleStudentTarget.student);
+        formData.append("regno", singleStudentTarget.regno);
+        formData.append("seatno", singleStudentTarget.seatno || "");
+        formData.append("cn", singleCn.trim());
+        formData.append("examdate", singleStudentTarget.examdate || "");
+        formData.append("examslot", singleStudentTarget.examslot || "");
+        formData.append("user", global1.user || global1.email || "evaluator");
+        formData.append("file", singleFile);
 
-      const res = await ep1.post("/api/v2/conductexam2/upload-answerbook", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+        const res = await ep1.post("/api/v2/conductexam2/upload-answerbook", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
 
-      if (res.data?.success) {
-        setMessage(`Answer book uploaded successfully for ${singleStudentTarget.student} (${singleStudentTarget.regno})!`);
-        await loadStudents();
+        if (res.data?.success) {
+          setMessage(`Answer book uploaded and CN saved for ${singleStudentTarget.student} (${singleStudentTarget.regno})!`);
+          setSingleUploadOpen(false);
+          await loadStudents();
+        } else {
+          setError(res.data?.message || "Failed to upload answer book.");
+        }
       } else {
-        setError(res.data?.message || "Failed to upload answer book.");
+        // Update CN only
+        const res = await ep1.post("/api/v2/conductexam2/save-answerbook-cn", {
+          colid: global1.colid,
+          regno: singleStudentTarget.regno,
+          coursecode: singleStudentTarget.coursecode,
+          cn: singleCn.trim()
+        });
+
+        if (res.data?.success) {
+          setMessage(`CN updated successfully for ${singleStudentTarget.student} (${singleStudentTarget.regno})!`);
+          setSingleUploadOpen(false);
+          await loadStudents();
+        } else {
+          setError(res.data?.message || "Failed to update CN.");
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Error uploading file.");
     } finally {
       setUploadingSingle(false);
-      setSingleStudentTarget(null);
+    }
+  };
+
+  // Standalone Edit CN modal
+  const handleOpenCnDialog = (studentRow) => {
+    setEditingCnRow(studentRow);
+    setStandaloneCn(studentRow.cn || "");
+    setCnModalOpen(true);
+  };
+
+  const handleSaveStandaloneCn = async () => {
+    if (!editingCnRow) return;
+    try {
+      setSavingCn(true);
+      setError("");
+      setMessage("");
+      const res = await ep1.post("/api/v2/conductexam2/save-answerbook-cn", {
+        colid: global1.colid,
+        regno: editingCnRow.regno,
+        coursecode: editingCnRow.coursecode,
+        cn: standaloneCn.trim()
+      });
+      if (res.data?.success) {
+        setMessage(`CN saved successfully for ${editingCnRow.student} (${editingCnRow.regno})!`);
+        setCnModalOpen(false);
+        await loadStudents();
+      } else {
+        setError(res.data?.message || "Failed to save CN.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save CN.");
+    } finally {
+      setSavingCn(false);
     }
   };
 
@@ -319,9 +385,30 @@ export default function ConductExam2AnswerBookUploadPage() {
     {
       field: "regno",
       headerName: "Reg No / Roll No",
-      width: 140,
+      width: 150,
       renderCell: (params) => (
         <Chip label={params.value} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+      )
+    },
+    {
+      field: "cn",
+      headerName: "CN (Unique No.)",
+      width: 170,
+      renderCell: (params) => (
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Chip
+            label={params.value || "Not Set"}
+            size="small"
+            color={params.value ? "primary" : "default"}
+            variant={params.value ? "filled" : "outlined"}
+            sx={{ fontWeight: 700, fontFamily: "monospace" }}
+          />
+          <Tooltip title="Edit / Set CN">
+            <IconButton size="small" color="primary" onClick={() => handleOpenCnDialog(params.row)}>
+              <Edit sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       )
     },
     {
@@ -686,14 +773,192 @@ export default function ConductExam2AnswerBookUploadPage() {
         </Stack>
       </Box>
 
-      {/* Hidden File Input for Single Upload */}
-      <input
-        type="file"
-        ref={singleFileInputRef}
-        style={{ display: "none" }}
-        accept=".pdf,image/png,image/jpeg,image/jpg"
-        onChange={handleSingleFileSelected}
-      />
+      {/* Single Upload & CN Dialog */}
+      <Dialog
+        open={singleUploadOpen}
+        onClose={() => !uploadingSingle && setSingleUploadOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={800}>
+              {singleStudentTarget?.answerbookurl ? "Replace Answer Book & Update CN" : "Upload Answer Book & Assign CN"}
+            </Typography>
+            <IconButton onClick={() => setSingleUploadOpen(false)} disabled={uploadingSingle} size="small">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ pt: 2.5 }}>
+          <Stack spacing={2.5}>
+            {/* Student Info Card */}
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 1.5 }}>
+              <Grid container spacing={1.5}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary">Student Name</Typography>
+                  <Typography variant="body2" fontWeight={700}>{singleStudentTarget?.student}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary">Roll / Reg No.</Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary.main">{singleStudentTarget?.regno}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary">Course</Typography>
+                  <Typography variant="body2">{singleStudentTarget?.course} ({singleStudentTarget?.coursecode})</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary">Seat No.</Typography>
+                  <Typography variant="body2">{singleStudentTarget?.seatno || "-"}</Typography>
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* CN Input Field */}
+            <Box>
+              <TextField
+                fullWidth
+                label="CN (Unique Copy Number) *"
+                value={singleCn}
+                onChange={(e) => setSingleCn(e.target.value)}
+                placeholder="e.g. 631581"
+                helperText="Unique copy number assigned to the student's physical answer script for the award list report."
+                autoFocus
+              />
+            </Box>
+
+            {/* Existing File Info (if already uploaded) */}
+            {singleStudentTarget?.answerbookurl && (
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                Current Script: <strong>{singleStudentTarget.answerbookfilename || "Answer_Script.pdf"}</strong> ({formatBytes(singleStudentTarget.filesize)})
+              </Alert>
+            )}
+
+            {/* File Selection Box */}
+            <Box
+              sx={{
+                p: 2.5,
+                border: "2px dashed #93c5fd",
+                borderRadius: 2,
+                textAlign: "center",
+                bgcolor: singleFile ? "#eff6ff" : "#fafafa",
+                cursor: "pointer",
+                "&:hover": { bgcolor: "#eff6ff" }
+              }}
+              onClick={() => {
+                const el = document.getElementById("single-script-file-input");
+                if (el) el.click();
+              }}
+            >
+              <input
+                id="single-script-file-input"
+                type="file"
+                style={{ display: "none" }}
+                accept=".pdf,image/png,image/jpeg,image/jpg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setSingleFile(f);
+                }}
+              />
+              <CloudUpload color="primary" sx={{ fontSize: 36, mb: 0.5 }} />
+              {singleFile ? (
+                <Box>
+                  <Typography variant="body2" fontWeight={700} color="primary">
+                    Selected: {singleFile.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Size: {formatBytes(singleFile.size)} • Click to change
+                  </Typography>
+                </Box>
+              ) : (
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>
+                    {singleStudentTarget?.answerbookurl ? "Click to select replacement PDF" : "Click to select student Answer Book PDF"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Supports .pdf files up to 50MB
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {uploadingSingle && <LinearProgress />}
+          </Stack>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setSingleUploadOpen(false)} disabled={uploadingSingle}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<CloudUpload />}
+            onClick={handleSingleUploadSubmit}
+            disabled={uploadingSingle || (!singleFile && !singleStudentTarget?.answerbookurl && !singleCn)}
+          >
+            {uploadingSingle ? "Saving..." : singleFile ? "Upload & Save" : "Save CN"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Standalone Quick Edit CN Dialog */}
+      <Dialog
+        open={cnModalOpen}
+        onClose={() => !savingCn && setCnModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, bgcolor: "#f8fafc" }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={800}>
+              Edit CN (Copy Number)
+            </Typography>
+            <IconButton onClick={() => setCnModalOpen(false)} disabled={savingCn} size="small">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ pt: 2.5 }}>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="body2" fontWeight={700}>
+                {editingCnRow?.student}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Roll No: {editingCnRow?.regno} • Course: {editingCnRow?.coursecode}
+              </Typography>
+            </Box>
+            <TextField
+              fullWidth
+              label="CN (Unique Copy Number) *"
+              value={standaloneCn}
+              onChange={(e) => setStandaloneCn(e.target.value)}
+              placeholder="e.g. 631581"
+              helperText="Unique copy number printed on the Award List report"
+              autoFocus
+            />
+            {savingCn && <LinearProgress />}
+          </Stack>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setCnModalOpen(false)} disabled={savingCn}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Save />}
+            onClick={handleSaveStandaloneCn}
+            disabled={savingCn}
+          >
+            {savingCn ? "Saving..." : "Save CN"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Bulk Upload Dialog */}
       <Dialog open={bulkOpen} onClose={() => !bulkUploading && setBulkOpen(false)} maxWidth="md" fullWidth>

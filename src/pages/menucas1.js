@@ -159,8 +159,8 @@ const hasMenuAccess = (group, page, allowedKeys, allowedPaths, deniedKeys, denie
 const getDisplayGroup = (group, page, displayGroupsByKey, displayGroupsByPath) => {
   const groupKey = normalizeMenuText(group);
   const titleKey = normalizeMenuText(page.title);
-  const pathKey = normalizeMenuText(page.path);
-  return displayGroupsByPath.get(pathKey) || displayGroupsByKey.get(`${groupKey}|${titleKey}`) || group;
+  // Respect the item's specific group key first, then fallback to its native group
+  return displayGroupsByKey.get(`${groupKey}|${titleKey}`) || group;
 };
 
 const replaceSummaryTitle = (summary, groupName) => {
@@ -193,14 +193,43 @@ const filterNode = (node, group, allowedKeys, allowedPaths, deniedKeys, deniedPa
     .map((child) => filterNode(child, group, allowedKeys, allowedPaths, deniedKeys, deniedPaths, displayGroup, displayGroupsByKey, displayGroupsByPath))
     .filter(Boolean);
 
-  return React.cloneElement(node, node.props, children);
+  // Deduplicate by target path or text to prevent identical items within the same accordion
+  const seenNodeKeys = new Set();
+  const dedupedChildren = [];
+  for (const child of children) {
+    if (!React.isValidElement(child)) {
+      dedupedChildren.push(child);
+      continue;
+    }
+    const to = child.props?.to;
+    const text = findFirstPrimary(child);
+    const key = to ? normalizeMenuText(to) : normalizeMenuText(text);
+    if (key && seenNodeKeys.has(key)) continue;
+    if (key) seenNodeKeys.add(key);
+    dedupedChildren.push(child);
+  }
+
+  return React.cloneElement(node, node.props, dedupedChildren);
 };
 
 const mergeAccordionDetails = (detailsList) => {
   const firstDetails = detailsList[0];
   if (!React.isValidElement(firstDetails)) return firstDetails;
   const mergedChildren = detailsList.flatMap((details) => flattenChildren(details.props?.children));
-  return React.cloneElement(firstDetails, firstDetails.props, mergedChildren);
+
+  const seen = new Set();
+  const uniqueChildren = [];
+  for (const child of mergedChildren) {
+    if (!React.isValidElement(child)) continue;
+    const to = child.props?.to;
+    const text = findFirstPrimary(child);
+    const key = to ? normalizeMenuText(to) : normalizeMenuText(text);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    uniqueChildren.push(child);
+  }
+
+  return React.cloneElement(firstDetails, firstDetails.props, uniqueChildren);
 };
 
 const filterMenuTree = (menuTree, allowedKeys, allowedPaths, deniedKeys, deniedPaths, displayGroupsByKey, displayGroupsByPath) => {

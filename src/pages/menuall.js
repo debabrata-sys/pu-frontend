@@ -677,6 +677,20 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Profile edit" />}
           </ListItem>
 
+          <ListItem button component={RouterLink} to="/nonstudentprofileedit">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Non-student profile edit" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/nonstudentuserslayout">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Non-student users layout" />}
+          </ListItem>
+
           <ListItem button component={RouterLink} to="/userbankaccounts">
             <ListItemIcon>
               <AccountBalanceWalletIcon />
@@ -3312,6 +3326,27 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Upload student answer book" />}
           </ListItem>
 
+          <ListItem button component={RouterLink} to="/conduct-exam-2-valuation-status-summary">
+            <ListItemIcon>
+              <BarChartIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Summary report" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-evaluator-quota">
+            <ListItemIcon>
+              <AssignmentIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Evaluator quota" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/conduct-exam-2-award-list">
+            <ListItemIcon>
+              <AssignmentTurnedInIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Award list report" />}
+          </ListItem>
+
           <ListItem button component={RouterLink} to="/conduct-exam-2-remuneration-payment">
             <ListItemIcon>
               <PersonIcon />
@@ -5729,8 +5764,56 @@ export function menuitemsall() {
 
       {/* Digital Evaluation hidden from menuall */}
 
-      {/* Reevaluation hidden from menuall */}
-
+      <Accordion>
+        <AccordionSummary aria-controls="panel-reevaluation-content" id="panel-reevaluation-header">
+          <AddTaskIcon sx={{ marginRight: 1 }} />
+          {open && <Typography sx={{ fontSize: 14 }}>Re-evaluation</Typography>}
+        </AccordionSummary>
+        <AccordionDetails>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-reevaluation">
+            <ListItemIcon>
+              <AddTaskIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Re-evaluation desk" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-valuation-status-summary">
+            <ListItemIcon>
+              <BarChartIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Valuation status summary" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-evaluator-quota">
+            <ListItemIcon>
+              <AssignmentIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Evaluator quota" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-award-list">
+            <ListItemIcon>
+              <AssignmentTurnedInIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Award list report" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-day-report">
+            <ListItemIcon>
+              <BarChartIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Daily evaluation report" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-monthly-report">
+            <ListItemIcon>
+              <BarChartIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Monthly report (Valuations)" />}
+          </ListItem>
+          <ListItem button component={RouterLink} to="/conduct-exam-2-evaluation-reports">
+            <ListItemIcon>
+              <AssignmentTurnedInIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="All valuation reports" />}
+          </ListItem>
+        </AccordionDetails>
+      </Accordion>
       
 
 {/* Exam New */}
