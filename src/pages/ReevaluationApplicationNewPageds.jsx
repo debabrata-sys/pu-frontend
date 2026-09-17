@@ -29,11 +29,11 @@ function ReevaluationApplicationNewPageds() {
   const [searchParams, setSearchParams] = useState({
     regno: global1.regno || "",
     colid: Number(global1.colid) || "",
-    program: "",
-    branch: "",
-    regulation: "",
-    semester: "",
-    year: "",
+    program: global1.program || global1.programcode || "",
+    branch: global1.branch || global1.department || "",
+    regulation: global1.regulation || "",
+    semester: global1.semester || "1",
+    year: global1.academicyear ? global1.academicyear.split("-")[0] : (global1.year || "2026"),
   });
   const [allPapers, setAllPapers] = useState([]);
   const [selectedPapers, setSelectedPapers] = useState([]);
@@ -41,30 +41,68 @@ function ReevaluationApplicationNewPageds() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [filterOptions, setFilterOptions] = useState({
-    programs: [],
-    branches: [],
-    regulations: [],
-    semesters: [],
-    years: [],
+    programs: [global1.program, global1.programcode].filter(Boolean),
+    branches: [global1.branch, global1.department, "General"].filter(Boolean),
+    regulations: [global1.regulation, "R2020"].filter(Boolean),
+    semesters: [global1.semester, "1", "2", "3", "4", "5", "6", "7", "8"].filter(Boolean),
+    years: ["2026", "2025", "2024"],
   });
 
   useEffect(() => {
     fetchFilterOptions();
     fetchMyApplications();
+    if (global1.regno) {
+      handleSearchPapers({
+        regno: global1.regno,
+        colid: Number(global1.colid),
+        program: global1.program || global1.programcode || "",
+        semester: global1.semester || "1",
+        year: global1.academicyear ? global1.academicyear.split("-")[0] : "2026",
+      });
+    }
   }, []);
 
   const fetchFilterOptions = async () => {
     try {
       const res = await ep1.get("/api/v2/reevaluationnew/getfilteroptionsforstudentds1", {
-        params: { colid: Number(global1.colid) },
+        params: { colid: Number(global1.colid), regno: global1.regno },
       });
+      const backendProgs = res.data.programs || [];
+      const userProgs = [global1.program, global1.programcode].filter(Boolean);
+      const combinedProgs = [...new Set([...userProgs, ...backendProgs])];
+
+      const backendRegs = res.data.regulations || [];
+      const userRegs = [global1.regulation].filter(Boolean);
+      const combinedRegs = [...new Set([...userRegs, ...backendRegs])];
+
+      const backendSems = res.data.semesters || [];
+      const userSems = [global1.semester].filter(Boolean);
+      const combinedSems = [...new Set([...userSems, ...backendSems])];
+
+      const backendYears = res.data.years || [];
+      const userYears = [global1.academicyear ? global1.academicyear.split("-")[0] : null, global1.year].filter(Boolean);
+      const combinedYears = [...new Set([...userYears, ...backendYears])];
+
+      const backendBranches = res.data.branches || [];
+      const userBranches = [global1.branch, global1.department, "General"].filter(Boolean);
+      const combinedBranches = [...new Set([...userBranches, ...backendBranches])];
+
       setFilterOptions({
-        programs: res.data.programs || [],
-        branches: res.data.branches || [],
-        regulations: res.data.regulations || [],
-        semesters: res.data.semesters || [],
-        years: res.data.years || [],
+        programs: combinedProgs,
+        branches: combinedBranches,
+        regulations: combinedRegs,
+        semesters: combinedSems,
+        years: combinedYears,
       });
+
+      setSearchParams(prev => ({
+        ...prev,
+        program: prev.program || userProgs[0] || combinedProgs[0] || "",
+        regulation: prev.regulation || userRegs[0] || combinedRegs[0] || "",
+        semester: prev.semester || userSems[0] || combinedSems[0] || "1",
+        year: prev.year || userYears[0] || combinedYears[0] || "2026",
+        branch: prev.branch || userBranches[0] || combinedBranches[0] || "General"
+      }));
     } catch (err) {
       console.error(err);
     }
@@ -74,26 +112,27 @@ function ReevaluationApplicationNewPageds() {
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
   };
 
-  const handleSearchPapers = async () => {
-    if (!searchParams.regno || !searchParams.program || !searchParams.year || !searchParams.semester) {
-      setError("please fill all required fields");
+  const handleSearchPapers = async (overrideParams = null) => {
+    const paramsToQuery = overrideParams || searchParams;
+    if (!paramsToQuery.regno) {
+      setError("Please provide registration number");
       return;
     }
     try {
       const res = await ep1.get("/api/v2/reevaluationnew/getallpapersforstudentds1", {
-        params: searchParams,
+        params: paramsToQuery,
       });
       
-      if (res.data.length === 0) {
-        setError("no papers found for the given criteria");
+      if (!res.data || res.data.length === 0) {
+        setError("No evaluated papers found for the selected criteria");
+        setAllPapers([]);
       } else {
         setError("");
+        setAllPapers(res.data);
       }
-      
-      setAllPapers(res.data);
       setSelectedPapers([]);
     } catch (err) {
-      setError(err.response?.data?.error || "error fetching papers");
+      setError(err.response?.data?.error || "Error fetching papers");
     }
   };
 
