@@ -411,14 +411,25 @@ export default function ConductExam2ValuationSummaryPage() {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#fff1f2", color: "#9f1239", textAlign: "center" }}>V4 Pendency</TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#fdf2f8", color: "#9d174d", textAlign: "center" }}>V4 Valuated</TableCell>
-                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f3f4f6", textAlign: "center", minWidth: 230 }}>Award Sheets (V1 - V4)</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#eff6ff", color: "#1e40af", textAlign: "center", minWidth: 125 }}>
+                      V1 Award List
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f0fdf4", color: "#166534", textAlign: "center", minWidth: 125 }}>
+                      V2 Award List
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f0fdf4", color: "#166534", textAlign: "center", minWidth: 125 }}>
+                      V3 Award List
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#fdf2f8", color: "#9d174d", textAlign: "center", minWidth: 125 }}>
+                      V4 Award List
+                    </TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={17} sx={{ textAlign: "center", py: 5 }}>
+                      <TableCell colSpan={20} sx={{ textAlign: "center", py: 5 }}>
                         <CircularProgress size={36} />
                         <Typography variant="body2" sx={{ mt: 1.5 }} color="text.secondary">
                           Loading Valuation Summary Report...
@@ -427,7 +438,7 @@ export default function ConductExam2ValuationSummaryPage() {
                     </TableRow>
                   ) : filteredRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={17} sx={{ textAlign: "center", py: 5, color: "#6b7280" }}>
+                      <TableCell colSpan={20} sx={{ textAlign: "center", py: 5, color: "#6b7280" }}>
                         No examination courses found matching the selected filters.
                       </TableCell>
                     </TableRow>
@@ -570,100 +581,108 @@ export default function ConductExam2ValuationSummaryPage() {
                               row.v4Valuated
                             )}
                           </TableCell>
-                          <TableCell sx={{ textAlign: "center" }}>
-                            <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
-                              <Tooltip title={v1Tooltip} arrow>
-                                <span>
-                                  <Button
-                                    size="small"
-                                    variant={v1Disabled ? "outlined" : "contained"}
-                                    color="primary"
-                                    disabled={v1Disabled}
-                                    onClick={() => handleOpenAwardList(row, "V1")}
-                                    sx={{
-                                      minWidth: 40,
-                                      px: 0.8,
-                                      py: 0.35,
-                                      fontSize: "11px",
-                                      fontWeight: 800,
-                                      textTransform: "none",
-                                      boxShadow: v1Disabled ? "none" : undefined
-                                    }}
-                                  >
-                                    V1
-                                  </Button>
-                                </span>
-                              </Tooltip>
+                          {/* V1 Award List */}
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f8fafc" }}>
+                            <Tooltip title={v1Tooltip} arrow>
+                              <span>
+                                <Button
+                                  size="small"
+                                  variant={v1Disabled ? "outlined" : "contained"}
+                                  color="primary"
+                                  disabled={v1Disabled}
+                                  onClick={() => handleOpenAwardList(row, "V1")}
+                                  sx={{
+                                    minWidth: 100,
+                                    px: 1,
+                                    py: 0.4,
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    textTransform: "none",
+                                    boxShadow: v1Disabled ? "none" : undefined
+                                  }}
+                                >
+                                  V1 Award List
+                                </Button>
+                              </span>
+                            </Tooltip>
+                          </TableCell>
 
-                              <Tooltip title={v2Tooltip} arrow>
-                                <span>
-                                  <Button
-                                    size="small"
-                                    variant={v2Disabled ? "outlined" : "contained"}
-                                    color="success"
-                                    disabled={v2Disabled}
-                                    onClick={() => handleOpenAwardList(row, "V2")}
-                                    sx={{
-                                      minWidth: 40,
-                                      px: 0.8,
-                                      py: 0.35,
-                                      fontSize: "11px",
-                                      fontWeight: 800,
-                                      textTransform: "none",
-                                      boxShadow: v2Disabled ? "none" : undefined
-                                    }}
-                                  >
-                                    V2
-                                  </Button>
-                                </span>
-                              </Tooltip>
+                          {/* V2 Award List */}
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f8fafc" }}>
+                            <Tooltip title={v2Tooltip} arrow>
+                              <span>
+                                <Button
+                                  size="small"
+                                  variant={v2Disabled ? "outlined" : "contained"}
+                                  color="success"
+                                  disabled={v2Disabled}
+                                  onClick={() => handleOpenAwardList(row, "V2")}
+                                  sx={{
+                                    minWidth: 100,
+                                    px: 1,
+                                    py: 0.4,
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    textTransform: "none",
+                                    boxShadow: v2Disabled ? "none" : undefined
+                                  }}
+                                >
+                                  V2 Award List
+                                </Button>
+                              </span>
+                            </Tooltip>
+                          </TableCell>
 
-                              <Tooltip title={v3Tooltip} arrow>
-                                <span>
-                                  <Button
-                                    size="small"
-                                    variant={v3Disabled ? "outlined" : "contained"}
-                                    color="secondary"
-                                    disabled={v3Disabled}
-                                    onClick={() => handleOpenAwardList(row, "V3")}
-                                    sx={{
-                                      minWidth: 40,
-                                      px: 0.8,
-                                      py: 0.35,
-                                      fontSize: "11px",
-                                      fontWeight: 800,
-                                      textTransform: "none",
-                                      boxShadow: v3Disabled ? "none" : undefined
-                                    }}
-                                  >
-                                    V3
-                                  </Button>
-                                </span>
-                              </Tooltip>
+                          {/* V3 Award List */}
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f8fafc" }}>
+                            <Tooltip title={v3Tooltip} arrow>
+                              <span>
+                                <Button
+                                  size="small"
+                                  variant={v3Disabled ? "outlined" : "contained"}
+                                  color="secondary"
+                                  disabled={v3Disabled}
+                                  onClick={() => handleOpenAwardList(row, "V3")}
+                                  sx={{
+                                    minWidth: 100,
+                                    px: 1,
+                                    py: 0.4,
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    textTransform: "none",
+                                    boxShadow: v3Disabled ? "none" : undefined
+                                  }}
+                                >
+                                  V3 Award List
+                                </Button>
+                              </span>
+                            </Tooltip>
+                          </TableCell>
 
-                              <Tooltip title={v4Tooltip} arrow>
-                                <span>
-                                  <Button
-                                    size="small"
-                                    variant={v4Disabled ? "outlined" : "contained"}
-                                    color="error"
-                                    disabled={v4Disabled}
-                                    onClick={() => handleOpenAwardList(row, "V4")}
-                                    sx={{
-                                      minWidth: 40,
-                                      px: 0.8,
-                                      py: 0.35,
-                                      fontSize: "11px",
-                                      fontWeight: 800,
-                                      textTransform: "none",
-                                      boxShadow: v4Disabled ? "none" : undefined
-                                    }}
-                                  >
-                                    V4
-                                  </Button>
-                                </span>
-                              </Tooltip>
-                            </Stack>
+                          {/* V4 Award List */}
+                          <TableCell sx={{ textAlign: "center", bgcolor: "#f8fafc" }}>
+                            <Tooltip title={v4Tooltip} arrow>
+                              <span>
+                                <Button
+                                  size="small"
+                                  variant={v4Disabled ? "outlined" : "contained"}
+                                  color="error"
+                                  disabled={v4Disabled}
+                                  onClick={() => handleOpenAwardList(row, "V4")}
+                                  sx={{
+                                    minWidth: 100,
+                                    px: 1,
+                                    py: 0.4,
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    textTransform: "none",
+                                    boxShadow: v4Disabled ? "none" : undefined
+                                  }}
+                                >
+                                  V4 Award List
+                                </Button>
+                              </span>
+                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );
