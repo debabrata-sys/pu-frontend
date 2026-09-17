@@ -44,8 +44,8 @@ function ReevaluationApplicationNewPageds() {
     programs: [global1.program, global1.programcode].filter(Boolean),
     branches: [global1.branch, global1.department, "General"].filter(Boolean),
     regulations: [global1.regulation, "R2020"].filter(Boolean),
-    semesters: [global1.semester, "1", "2", "3", "4", "5", "6", "7", "8"].filter(Boolean),
-    years: ["2026", "2025", "2024"],
+    semesters: [global1.semester || "1"].filter(Boolean),
+    years: [global1.academicyear ? global1.academicyear.split("-")[0] : "2026"],
   });
 
   useEffect(() => {
@@ -67,41 +67,33 @@ function ReevaluationApplicationNewPageds() {
       const res = await ep1.get("/api/v2/reevaluationnew/getfilteroptionsforstudentds1", {
         params: { colid: Number(global1.colid), regno: global1.regno },
       });
-      const backendProgs = res.data.programs || [];
-      const userProgs = [global1.program, global1.programcode].filter(Boolean);
-      const combinedProgs = [...new Set([...userProgs, ...backendProgs])];
+      const enrolledPrograms = [global1.program, global1.programcode].filter(Boolean);
+      const backendProgs = (res.data.programs || []).filter(Boolean);
 
-      const backendRegs = res.data.regulations || [];
-      const userRegs = [global1.regulation].filter(Boolean);
-      const combinedRegs = [...new Set([...userRegs, ...backendRegs])];
-
-      const backendSems = res.data.semesters || [];
-      const userSems = [global1.semester].filter(Boolean);
-      const combinedSems = [...new Set([...userSems, ...backendSems])];
-
-      const backendYears = res.data.years || [];
-      const userYears = [global1.academicyear ? global1.academicyear.split("-")[0] : null, global1.year].filter(Boolean);
-      const combinedYears = [...new Set([...userYears, ...backendYears])];
-
-      const backendBranches = res.data.branches || [];
-      const userBranches = [global1.branch, global1.department, "General"].filter(Boolean);
-      const combinedBranches = [...new Set([...userBranches, ...backendBranches])];
+      // In student login, ONLY display the program(s) in which this student is enrolled
+      let finalPrograms = [];
+      if (enrolledPrograms.length > 0) {
+        const matched = backendProgs.filter(p => enrolledPrograms.some(ep => String(ep).toLowerCase() === String(p).toLowerCase()));
+        finalPrograms = matched.length > 0 ? matched : enrolledPrograms;
+      } else {
+        finalPrograms = backendProgs;
+      }
 
       setFilterOptions({
-        programs: combinedProgs,
-        branches: combinedBranches,
-        regulations: combinedRegs,
-        semesters: combinedSems,
-        years: combinedYears,
+        programs: [...new Set(finalPrograms)],
+        branches: res.data.branches?.length ? res.data.branches : [global1.branch || "General"].filter(Boolean),
+        regulations: res.data.regulations?.length ? res.data.regulations : [global1.regulation || "R2020"].filter(Boolean),
+        semesters: res.data.semesters?.length ? res.data.semesters : [global1.semester || "1"].filter(Boolean),
+        years: res.data.years?.length ? res.data.years : ["2026"],
       });
 
       setSearchParams(prev => ({
         ...prev,
-        program: prev.program || userProgs[0] || combinedProgs[0] || "",
-        regulation: prev.regulation || userRegs[0] || combinedRegs[0] || "",
-        semester: prev.semester || userSems[0] || combinedSems[0] || "1",
-        year: prev.year || userYears[0] || combinedYears[0] || "2026",
-        branch: prev.branch || userBranches[0] || combinedBranches[0] || "General"
+        program: prev.program || finalPrograms[0] || "",
+        regulation: prev.regulation || res.data.regulations?.[0] || global1.regulation || "R2020",
+        semester: prev.semester || res.data.semesters?.[0] || global1.semester || "1",
+        year: prev.year || res.data.years?.[0] || "2026",
+        branch: prev.branch || res.data.branches?.[0] || global1.branch || "General"
       }));
     } catch (err) {
       console.error(err);
@@ -247,6 +239,10 @@ function ReevaluationApplicationNewPageds() {
               onChange={handleChange}
               fullWidth
               required
+              InputProps={{
+                readOnly: Boolean(global1.regno),
+              }}
+              helperText={global1.regno ? "Enrolled Student" : ""}
             />
             <TextField
               select
@@ -256,6 +252,7 @@ function ReevaluationApplicationNewPageds() {
               onChange={handleChange}
               fullWidth
               required
+              helperText={filterOptions.programs.length === 1 ? "Enrolled Program" : ""}
             >
               {filterOptions.programs.map((prog) => (
                 <MenuItem key={prog} value={prog}>
