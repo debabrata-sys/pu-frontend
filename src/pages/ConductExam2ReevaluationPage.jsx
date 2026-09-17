@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -1528,35 +1529,45 @@ export default function ConductExam2ReevaluationPage() {
           </Typography>
 
           <Stack spacing={2.5}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Select Re-evaluator 1 (V2)"
-              value={selectedEval1}
-              onChange={(e) => setSelectedEval1(e.target.value)}
-            >
-              {options.evaluators.map((e) => (
-                <MenuItem key={e.email} value={e.email} disabled={e.email === selectedEval2}>
-                  {e.name} ({e.evaluatorid}) - {e.institution}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              options={options.evaluators}
+              getOptionLabel={(option) =>
+                typeof option === "string"
+                  ? option
+                  : `${option.name} (${option.evaluatorid}) - ${option.institution}`
+              }
+              value={options.evaluators.find((e) => e.email === selectedEval1) || null}
+              onChange={(_, val) => setSelectedEval1(val ? val.email : "")}
+              getOptionDisabled={(option) => option.email === selectedEval2}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Select Re-evaluator 1 (V2)"
+                  placeholder="Search evaluator by name, department..."
+                />
+              )}
+            />
 
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Select Re-evaluator 2 (V3)"
-              value={selectedEval2}
-              onChange={(e) => setSelectedEval2(e.target.value)}
-            >
-              {options.evaluators.map((e) => (
-                <MenuItem key={e.email} value={e.email} disabled={e.email === selectedEval1}>
-                  {e.name} ({e.evaluatorid}) - {e.institution}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              options={options.evaluators}
+              getOptionLabel={(option) =>
+                typeof option === "string"
+                  ? option
+                  : `${option.name} (${option.evaluatorid}) - ${option.institution}`
+              }
+              value={options.evaluators.find((e) => e.email === selectedEval2) || null}
+              onChange={(_, val) => setSelectedEval2(val ? val.email : "")}
+              getOptionDisabled={(option) => option.email === selectedEval1}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Select Re-evaluator 2 (V3)"
+                  placeholder="Search evaluator by name, department..."
+                />
+              )}
+            />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
@@ -1577,20 +1588,24 @@ export default function ConductExam2ReevaluationPage() {
             Selected <b>{selectedRevals.length}</b> script(s) where average marks from Re-evaluators 1 &amp; 2 increased by &gt;20%. Assign Re-evaluator 3 to calculate final average across all 3 evaluators.
           </Typography>
 
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Select Re-evaluator 3 (V4)"
-            value={selectedEval3}
-            onChange={(e) => setSelectedEval3(e.target.value)}
-          >
-            {options.evaluators.map((e) => (
-              <MenuItem key={e.email} value={e.email}>
-                {e.name} ({e.evaluatorid}) - {e.institution}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Autocomplete
+            options={options.evaluators}
+            getOptionLabel={(option) =>
+              typeof option === "string"
+                ? option
+                : `${option.name} (${option.evaluatorid}) - ${option.institution}`
+            }
+            value={options.evaluators.find((e) => e.email === selectedEval3) || null}
+            onChange={(_, val) => setSelectedEval3(val ? val.email : "")}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                label="Select Re-evaluator 3 (V4)"
+                placeholder="Search evaluator by name, department..."
+              />
+            )}
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setAllot3Open(false)}>Cancel</Button>
