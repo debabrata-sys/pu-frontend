@@ -16,6 +16,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { menuitemsall } from "./menuall";
 import { mainListItems as studentListItems } from "./menustud1";
+import { studentDefaultMenuGroups } from "./studentMenuData";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
 
@@ -128,10 +129,17 @@ export default function TopMenuSearch({ menuType }) {
   }, []);
 
   const menuItems = useMemo(() => {
-    const tree = isStudent ? studentListItems({ open: true }) : menuitemsall();
-    const extracted = extractGroupedPages(tree).filter((item) => item.path && item.title);
+    let rawItems = [];
+    if (isStudent) {
+      rawItems = (studentDefaultMenuGroups || []).flatMap((g) =>
+        (g.items || []).map((it) => ({ group: g.group, title: it.title, path: it.path }))
+      );
+    } else {
+      const tree = menuitemsall();
+      rawItems = extractGroupedPages(tree).filter((item) => item.path && item.title);
+    }
     const unique = new Map();
-    extracted.forEach((item) => {
+    rawItems.forEach((item) => {
       const key = `${item.path}|${item.title}`;
       if (!unique.has(key)) unique.set(key, item);
     });
@@ -139,10 +147,15 @@ export default function TopMenuSearch({ menuType }) {
   }, [isStudent, rules]);
 
   const results = useMemo(() => {
-    const term = normalize(query);
+    const term = normalize(query).replace(/[-\s_]/g, "");
     if (!term) return [];
     return menuItems
-      .filter((item) => normalize(item.group).includes(term) || normalize(item.title).includes(term) || normalize(item.path).includes(term))
+      .filter((item) => {
+        const g = normalize(item.group).replace(/[-\s_]/g, "");
+        const t = normalize(item.title).replace(/[-\s_]/g, "");
+        const p = normalize(item.path).replace(/[-\s_]/g, "");
+        return g.includes(term) || t.includes(term) || p.includes(term);
+      })
       .sort((a, b) => a.group.localeCompare(b.group) || a.title.localeCompare(b.title))
       .slice(0, 12);
   }, [menuItems, query]);

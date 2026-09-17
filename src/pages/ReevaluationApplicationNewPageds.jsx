@@ -22,6 +22,7 @@ import ep1 from "../api/ep1";
 import global1 from "./global1";
 import { ArrowBack } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import MenuPageShell from "./MenuPageShell";
 
 function ReevaluationApplicationNewPageds() {
   const navigate = useNavigate();
@@ -176,18 +177,20 @@ function ReevaluationApplicationNewPageds() {
   };
 
   return (
-    <Box p={3}>
-      <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}>
-                                            <Button
-                                              startIcon={<ArrowBack />}
-                                              onClick={() => navigate("/dashboardreevalds")}
-                                            >
-                                              Back
-                                            </Button>
-                                            <Typography variant="h4" gutterBottom>
-        reevaluation application (new process)
-      </Typography>
-                                          </Box>
+    <MenuPageShell title="Student Re-evaluation Application">
+      <Box p={{ xs: 1.5, sm: 3 }} maxWidth={1200} mx="auto">
+        <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate("/studentdashboard")}
+          >
+            Back to Dashboard
+          </Button>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            Re-evaluation Application (Student Portal)
+          </Typography>
+        </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
@@ -409,6 +412,7 @@ function ReevaluationApplicationNewPageds() {
         </CardContent>
       </Card>
     </Box>
+    </MenuPageShell>
   );
 }
 

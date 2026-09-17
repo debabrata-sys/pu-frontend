@@ -70,11 +70,13 @@ export const studentDefaultMenuGroups = [
     { path: "/dashmexamadmitstud", title: "My registration" },
     { path: "/dashadmitdownload", title: "Download admit card" },
     { path: "/student-admit-card-new", title: "Admit card new" },
-    { path: "/dashmarksheet", title: "Download mark sheet" }
+    { path: "/dashmarksheet", title: "Download mark sheet" },
+    { path: "/reevaluation-application-new", title: "Apply for Re-evaluation" },
+    { path: "/reevaluationapplicationds", title: "Re-evaluation Status & History" }
   ] },
-  { group: "Reevaluation", items: [
-    { path: "/reevaluationapplicationds", title: "Apply" },
-    { path: "/reevaluation-application-new", title: "Apply New" }
+  { group: "Re-evaluation", items: [
+    { path: "/reevaluation-application-new", title: "Apply for Re-evaluation" },
+    { path: "/reevaluationapplicationds", title: "Re-evaluation Status & History" }
   ] },
   { group: "Placement", items: [
     { path: "/studentcv", title: "My CV" },

@@ -1017,31 +1017,43 @@ function DefaultStudentListItems({ open }) {
 {open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Download mark sheet" />}
 </ListItem>
 
+<ListItem button component={RouterLink} to="/reevaluation-application-new">
+<ListItemIcon>
+<PersonIcon />
+</ListItemIcon>
+{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Apply for Re-evaluation" />}
+</ListItem>
+
+<ListItem button component={RouterLink} to="/reevaluationapplicationds">
+<ListItemIcon>
+<PersonIcon />
+</ListItemIcon>
+{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Re-evaluation Status & History" />}
+</ListItem>
+
         </AccordionDetails>
         </Accordion>
 
           <Accordion>
-        <AccordionSummary aria-controls="panel3-content" id="panel3-header">
-          <BusinessIcon sx={{ marginRight: 1 }} />
-          {open && <Typography sx={{fontSize: 14}}>Reevaluation</Typography>}
+        <AccordionSummary aria-controls="panel-reevaluation-content" id="panel-reevaluation-header">
+          <AssignmentIcon sx={{ marginRight: 1 }} />
+          {open && <Typography sx={{fontSize: 14}}>Re-evaluation</Typography>}
         </AccordionSummary>
         <AccordionDetails>
-
-           <ListItem button component={RouterLink} to="/reevaluationapplicationds">
-<ListItemIcon>
-<PersonIcon />
-</ListItemIcon>
-{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Apply" />}
-</ListItem>
 
   <ListItem button component={RouterLink} to="/reevaluation-application-new">
 <ListItemIcon>
 <PersonIcon />
 </ListItemIcon>
-{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Apply New" />}
+{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Apply for Re-evaluation" />}
 </ListItem>
 
-
+  <ListItem button component={RouterLink} to="/reevaluationapplicationds">
+<ListItemIcon>
+<PersonIcon />
+</ListItemIcon>
+{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Re-evaluation Status & History" />}
+</ListItem>
 
         </AccordionDetails>
         </Accordion>

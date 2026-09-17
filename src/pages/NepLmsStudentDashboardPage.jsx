@@ -574,6 +574,7 @@ export default function NepLmsStudentDashboardPage() {
             </FormControl>
             <Button color="inherit" variant="outlined" startIcon={<Refresh />} onClick={loadDashboard} sx={{ borderColor: "rgba(255,255,255,0.55)" }}>Refresh</Button>
             <Button component={RouterLink} to="/studentneplmsworkspace" color="inherit" variant="contained" sx={{ bgcolor: "rgba(255,255,255,0.18)" }}>Open LMS</Button>
+            <Button component={RouterLink} to="/reevaluation-application-new" color="inherit" variant="contained" sx={{ bgcolor: "rgba(255,255,255,0.28)", fontWeight: 800, "&:hover": { bgcolor: "rgba(255,255,255,0.4)" } }}>Re-evaluation</Button>
           </Stack>
         </Stack>
       </Paper>
