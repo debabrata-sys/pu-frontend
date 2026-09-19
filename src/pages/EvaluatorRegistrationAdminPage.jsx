@@ -1327,7 +1327,7 @@ export default function EvaluatorRegistrationAdminPage() {
                       </Typography>
                       <img
                         src={selectedSubmission.photolink}
-                        alt="Candidate Photo"
+                        alt="Candidate"
                         style={{ maxHeight: 160, maxWidth: "100%", objectFit: "contain", borderRadius: 4 }}
                       />
                     </Paper>
@@ -1341,7 +1341,7 @@ export default function EvaluatorRegistrationAdminPage() {
                       </Typography>
                       <img
                         src={selectedSubmission.signaturelink}
-                        alt="Candidate Signature"
+                        alt="Specimen"
                         style={{ maxHeight: 100, maxWidth: "100%", objectFit: "contain", border: "1px dashed #ccc", padding: 4 }}
                       />
                     </Paper>

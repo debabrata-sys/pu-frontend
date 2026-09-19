@@ -15,11 +15,11 @@ import {
   CircularProgress,
   Divider,
   Card,
-  CardContent,
   FormControl,
   InputLabel,
   Select,
-  FormHelperText
+  FormHelperText,
+  Chip
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -50,12 +50,10 @@ export default function EvaluatorRegistrationPublicPage() {
   const [dynamicValues, setDynamicValues] = useState({});
 
   // Files
-  const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
   const [photolink, setPhotolink] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
 
-  const [signatureFile, setSignatureFile] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState("");
   const [signaturelink, setSignaturelink] = useState("");
   const [signatureUploading, setSignatureUploading] = useState(false);
@@ -150,7 +148,6 @@ export default function EvaluatorRegistrationPublicPage() {
       alert("Photograph file size must be less than 2 MB");
       return;
     }
-    setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
     setPhotoUploading(true);
     try {
@@ -158,7 +155,6 @@ export default function EvaluatorRegistrationPublicPage() {
       setPhotolink(url);
     } catch (err) {
       alert(err.message || "Failed to upload photo");
-      setPhotoFile(null);
       setPhotoPreview("");
     } finally {
       setPhotoUploading(false);
@@ -172,7 +168,6 @@ export default function EvaluatorRegistrationPublicPage() {
       alert("Signature file size must be less than 2 MB");
       return;
     }
-    setSignatureFile(file);
     setSignaturePreview(URL.createObjectURL(file));
     setSignatureUploading(true);
     try {
@@ -180,7 +175,6 @@ export default function EvaluatorRegistrationPublicPage() {
       setSignaturelink(url);
     } catch (err) {
       alert(err.message || "Failed to upload signature");
-      setSignatureFile(null);
       setSignaturePreview("");
     } finally {
       setSignatureUploading(false);
@@ -612,7 +606,7 @@ export default function EvaluatorRegistrationPublicPage() {
                       <Box sx={{ my: 1, position: "relative" }}>
                         <img
                           src={photoPreview}
-                          alt="Photo Preview"
+                          alt="Applicant Document"
                           style={{ height: 140, maxWidth: "100%", objectFit: "contain", borderRadius: 4 }}
                         />
                         <Box sx={{ mt: 1 }}>
@@ -620,7 +614,6 @@ export default function EvaluatorRegistrationPublicPage() {
                             size="small"
                             color="error"
                             onClick={() => {
-                              setPhotoFile(null);
                               setPhotoPreview("");
                               setPhotolink("");
                             }}
@@ -659,7 +652,7 @@ export default function EvaluatorRegistrationPublicPage() {
                       <Box sx={{ my: 1, position: "relative" }}>
                         <img
                           src={signaturePreview}
-                          alt="Signature Preview"
+                          alt="Specimen"
                           style={{ height: 90, maxWidth: "100%", objectFit: "contain", border: "1px dashed #ccc", padding: 4 }}
                         />
                         <Box sx={{ mt: 1 }}>
@@ -667,7 +660,6 @@ export default function EvaluatorRegistrationPublicPage() {
                             size="small"
                             color="error"
                             onClick={() => {
-                              setSignatureFile(null);
                               setSignaturePreview("");
                               setSignaturelink("");
                             }}
