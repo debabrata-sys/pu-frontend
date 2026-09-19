@@ -88,7 +88,11 @@ export default function EvaluatorRegistrationPublicPage() {
 
       if (res.data?.status === "Success") {
         setInstitution(res.data.institution || {});
-        const form = res.data.form;
+        const form = res.data.form || res.data.data;
+        if (!form) {
+          setErrorMsg("Form configuration could not be loaded.");
+          return;
+        }
         setFormConfig(form);
 
         // Initialize dynamicValues
