@@ -138,7 +138,10 @@ export default function EvaluatorRegistrationAdminPage() {
         ep1.get("/api/v2/evaluator-registration/custom-fields-catalog", { params: { colid } })
       ]);
       if (userRes.data?.status === "Success") {
-        setUserModelCatalog(userRes.data.data);
+        const d = userRes.data.data;
+        const essential = d?.essential || userRes.data.coreDefaultFields || [];
+        const optional = d?.optional || userRes.data.availableUserModelFields || [];
+        setUserModelCatalog({ essential, optional });
       }
       if (customRes.data?.status === "Success") {
         setCustomFieldsCatalog(customRes.data.data || []);
@@ -194,7 +197,7 @@ export default function EvaluatorRegistrationAdminPage() {
     setIncludePhoto(true);
 
     // Initial default core fields from User Model
-    const defaults = (userModelCatalog.essential || []).map((f, idx) => ({
+    const defaults = (userModelCatalog?.essential || []).map((f, idx) => ({
       id: `f_${Date.now()}_${idx}`,
       fieldname: f.fieldname,
       label: f.label,
@@ -225,7 +228,7 @@ export default function EvaluatorRegistrationAdminPage() {
 
   const handleAddFieldFromUserModel = () => {
     if (!selectedModelFieldKey) return;
-    const allModelFields = [...(userModelCatalog.essential || []), ...(userModelCatalog.optional || [])];
+    const allModelFields = [...(userModelCatalog?.essential || []), ...(userModelCatalog?.optional || [])];
     const item = allModelFields.find((f) => f.fieldname === selectedModelFieldKey);
     if (!item) return;
 
@@ -976,7 +979,7 @@ export default function EvaluatorRegistrationAdminPage() {
                       <MenuItem disabled value="divider1">
                         <strong>-- Essential User Fields --</strong>
                       </MenuItem>
-                      {(userModelCatalog.essential || []).map((f) => (
+                      {(userModelCatalog?.essential || []).map((f) => (
                         <MenuItem key={f.fieldname} value={f.fieldname}>
                           {f.label} ({f.fieldname})
                         </MenuItem>
@@ -984,7 +987,7 @@ export default function EvaluatorRegistrationAdminPage() {
                       <MenuItem disabled value="divider2">
                         <strong>-- Other Profile Fields --</strong>
                       </MenuItem>
-                      {(userModelCatalog.optional || []).map((f) => (
+                      {(userModelCatalog?.optional || []).map((f) => (
                         <MenuItem key={f.fieldname} value={f.fieldname}>
                           {f.label} ({f.fieldname})
                         </MenuItem>
