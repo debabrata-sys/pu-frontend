@@ -284,8 +284,9 @@ export default function EvaluatorRegistrationPublicPage() {
     try {
       const payload = {
         formid: formConfig._id,
-        token: tokenParam,
-        colid: colidParam,
+        token: tokenParam || formConfig.token,
+        formtoken: tokenParam || formConfig.token,
+        colid: Number(colidParam) || formConfig.colid || 1,
         fieldValues: dynamicValues,
         customFields: customFieldsObj,
         photolink,
