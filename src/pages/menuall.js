@@ -629,11 +629,11 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Employee reporting" />}
           </ListItem>
 
-          <ListItem button component={RouterLink} to="/faculty-registration-admin">
+          <ListItem button component={RouterLink} to="/evaluator-registration-admin">
             <ListItemIcon>
               <PersonIcon />
             </ListItemIcon>
-            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Faculty & Valuator Registrations" />}
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Evaluator / Faculty Registration" />}
           </ListItem>
 
           <ListItem button component={RouterLink} to="/usercustomfields">

@@ -1252,6 +1252,8 @@ import { ConductExamFeePage, ConductExamFormBuilderPage, ConductExamStudentFormP
 import StudentExamDynamicForm2Page from "./pages/StudentExamDynamicForm2Page";
 import FacultySelfRegistrationPage from "./pages/FacultySelfRegistrationPage";
 import FacultyRegistrationAdminPage from "./pages/FacultyRegistrationAdminPage";
+import EvaluatorRegistrationAdminPage from "./pages/EvaluatorRegistrationAdminPage";
+import EvaluatorRegistrationPublicPage from "./pages/EvaluatorRegistrationPublicPage";
 import {
   ExamAppealAllocationPage,
   ExamAppealApprovalPage,
@@ -4240,8 +4242,10 @@ function App() {
         <Route path="/student-exam-registration" element={<StudentExamRegistrationPage />} />
         <Route path="/student-exam-dynamic-form" element={<StudentExamDynamicFormPage />} />
         <Route path="/student-exam-dynamic-form-2" element={<StudentExamDynamicForm2Page />} />
-        <Route path="/faculty-registration" element={<FacultySelfRegistrationPage />} />
-        <Route path="/faculty-registration-admin" element={<FacultyRegistrationAdminPage />} />
+        <Route path="/faculty-registration" element={<EvaluatorRegistrationPublicPage />} />
+        <Route path="/faculty-registration-admin" element={<EvaluatorRegistrationAdminPage />} />
+        <Route path="/evaluator-registration" element={<EvaluatorRegistrationPublicPage />} />
+        <Route path="/evaluator-registration-admin" element={<EvaluatorRegistrationAdminPage />} />
         <Route path="/conduct-exam-student-form" element={<ConductExamStudentFormPage />} />
         <Route path="/phd-thesis-assignment" element={<PhdThesisAssignmentPage />} />
         <Route path="/phd-thesis-assignment-workflow" element={<PhdThesisAssignmentWorkflowPage />} />
