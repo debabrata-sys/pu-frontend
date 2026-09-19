@@ -179,18 +179,15 @@ const institutionName = (institution = {}) => firstValue(institution.institution
 const institutionLogo = (institution = {}) => firstValue(institution.logolink, institution.logo, institution.inslogo, global1.logo);
 const institutionAddress = (institution = {}) => firstValue(institution.address, global1.address);
 const profileFields = [
-  ["Name", "name"],
-  ["Reg No", "regno"],
-  ["Father's Name", "fathername"],
+  ["Name of the Student", "name"],
+  ["Enrollment No", "regno"],
+  ["ABC ID", "abcid"],
+  ["Father's name", "fathername"],
   ["Mother's Name", "mothername"],
-  ["Date of Birth", "dateofbirth"],
-  ["Category", "category"],
+  ["Date of birth", "dateofbirth"],
   ["Gender", "gender"],
   ["Nationality", "nationality"],
-  ["Phone", "phone"],
-  ["Address", "address"],
-  ["State", "state"],
-  ["Pincode", "pincode"],
+  ["Category", "category"],
   ["Program", "program"],
   ["Program Code", "programcode"],
   ["Regulation", "regulation"],
@@ -199,6 +196,19 @@ const profileFields = [
 ];
 const profileValue = (student = {}, field) => {
   if (field === "dateofbirth") return formatDate(studentDob(student));
+  if (field === "abcid") return firstValue(student.abcid, student.abcID, student.abc_id, student.abcId);
+  if (field === "regno") return firstValue(student.regno, student.enrollmentno, student.enrollment_no, student.rollno);
+  if (field === "name") return firstValue(student.name, student.studentname, student.student_name);
+  if (field === "fathername") return firstValue(student.fathername, student.father_name, student.guardianname);
+  if (field === "mothername") return firstValue(student.mothername, student.mother_name);
+  if (field === "gender") return firstValue(student.gender, student.sex);
+  if (field === "nationality") return firstValue(student.nationality, "Indian");
+  if (field === "category") return firstValue(student.category, "General");
+  if (field === "program") return firstValue(student.program, student.department);
+  if (field === "programcode") return firstValue(student.programcode, student.department);
+  if (field === "regulation") return firstValue(student.regulation);
+  if (field === "semester") return firstValue(student.semester);
+  if (field === "section") return firstValue(student.section);
   return firstValue(student[field]);
 };
 const loadInstitutionDetails = async () => {
@@ -257,7 +267,7 @@ const openStudentExamFormPrint = ({ institution = {}, student = {}, courses = []
     .meta span, .profile-item span { display: block; font-size: 10px; color: #111; text-transform: uppercase; }
     .meta strong, .profile-item strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
     .student { display: grid; grid-template-columns: 1fr 96px; gap: 10px; align-items: start; }
-    .profile { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .profile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
     .photo { width: 96px; height: 118px; border: 1px solid #111; object-fit: cover; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #111; padding: 5px; text-align: left; vertical-align: top; }
@@ -991,10 +1001,6 @@ export function StudentExamDynamicFormPage() {
                         <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{profileValue(context.student, field) || "NA"}</Typography>
                       </Grid>
                     ))}
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Typography variant="caption" color="text.secondary">Email</Typography>
-                      <Typography sx={{ fontWeight: 700, overflowWrap: "anywhere" }}>{context.student?.email || "NA"}</Typography>
-                    </Grid>
                   </Grid>
                 </Grid>
                 <Grid item xs={12} md={2}>
