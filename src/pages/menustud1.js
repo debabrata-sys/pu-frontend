@@ -952,6 +952,13 @@ function DefaultStudentListItems({ open }) {
 {open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Dynamic exam form" />}
 </ListItem>
 
+          <ListItem button component={RouterLink} to="/student-exam-dynamic-form-2">
+<ListItemIcon>
+<PersonIcon />
+</ListItemIcon>
+{open && <ListItemText primaryTypographyProps={{fontSize: "14px"}} primary="Dynamic exam form 2" />}
+</ListItem>
+
           <ListItem button component={RouterLink} to="/examapply">
 <ListItemIcon>
 <PersonIcon />

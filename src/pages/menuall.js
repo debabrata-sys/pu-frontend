@@ -629,6 +629,13 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Employee reporting" />}
           </ListItem>
 
+          <ListItem button component={RouterLink} to="/faculty-registration-admin">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Faculty & Valuator Registrations" />}
+          </ListItem>
+
           <ListItem button component={RouterLink} to="/usercustomfields">
             <ListItemIcon>
               <PersonIcon />

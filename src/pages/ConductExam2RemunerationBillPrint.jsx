@@ -221,7 +221,7 @@ export default function ConductExam2RemunerationBillPrint() {
             {/* Center: Bill Title */}
             <Box sx={{ flex: 1, textAlign: "center" }}>
               <Typography sx={{ fontWeight: 900, fontSize: "14px", letterSpacing: "0.5px", textTransform: "uppercase", color: "#000000" }}>
-                REMUNERATION/T.A./LOCAL CONVENCE BILL
+                REMUNERATION BILL
               </Typography>
               <Typography sx={{ fontStyle: "italic", fontSize: "10.5px", color: "#000000", mt: 0.2 }}>
                 Bill should be submitted separately for each Paper Code
@@ -252,135 +252,93 @@ export default function ConductExam2RemunerationBillPrint() {
           <Box sx={{ borderBottom: "2px double #000000", my: 0.8 }} />
 
           {/* ======================= EXAMINER PARTICULARS ======================= */}
-          <Box sx={{ fontSize: "11px", lineHeight: 1.75, mb: 1, color: "#000000" }}>
-            {/* Row 1 */}
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Box sx={{ flex: 1, pr: 2, display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Name of the Examiner:</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px", fontWeight: "bold" }}>
-                  {bill.examinername || ""}
-                </span>
-              </Box>
-              <Box sx={{ width: "36%", display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Designation :</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                  {bill.designation || ""}
-                </span>
-              </Box>
-            </Box>
-
-            {/* Row 2 */}
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Box sx={{ flex: 1, pr: 2, display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Institute Address :</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                  {bill.instituteaddress || bill.institute || ""}
-                </span>
-              </Box>
-              <Box sx={{ width: "36%", display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Contact No.:</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                  {bill.contactno || bill.phone || ""}
-                </span>
-              </Box>
-            </Box>
-
-            {/* Row 3 */}
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Box sx={{ flex: 1, pr: 2, display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Qualification :</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                  {bill.qualification || ""}
-                </span>
-              </Box>
-              <Box sx={{ width: "36%", display: "flex", alignItems: "flex-end" }}>
-                <span style={{ whiteSpace: "nowrap" }}>Specialization :</span>
-                <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                  {bill.specialization || ""}
-                </span>
-              </Box>
-            </Box>
-
-            {/* Row 4 */}
+          <Box sx={{ fontSize: "11px", lineHeight: 1.9, mb: 1, color: "#000000" }}>
+            {/* Name */}
             <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-              <span style={{ whiteSpace: "nowrap" }}>Experience (In Year) :</span>
-              <span style={{ marginLeft: "4px" }}>UG :</span>
-              <span style={{ minWidth: "40px", borderBottom: "1px dotted #000", marginLeft: "4px", textAlign: "center" }}>
-                {bill.experience_ug || ""}
-              </span>
-              <span style={{ marginLeft: "10px" }}>PG :</span>
-              <span style={{ minWidth: "40px", borderBottom: "1px dotted #000", marginLeft: "4px", textAlign: "center" }}>
-                {bill.experience_pg || ""}
-              </span>
-              <span style={{ marginLeft: "14px", whiteSpace: "nowrap" }}>Email ID:</span>
-              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "4px", paddingLeft: "4px" }}>
-                {bill.examineremail || bill.email || ""}
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Name -</span>
+              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px", fontWeight: "bold" }}>
+                {bill.examinername || ""}{bill.examinercode ? ` (${bill.examinercode})` : ""}
               </span>
             </Box>
 
-            {/* Row 5 */}
+            {/* Designation */}
             <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-              <span style={{ whiteSpace: "nowrap" }}>Program :</span>
-              <span style={{ minWidth: "150px", borderBottom: "1px dotted #000", margin: "0 6px", paddingLeft: "4px" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Designation -</span>
+              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
+                {bill.designation || ""}
+              </span>
+            </Box>
+
+            {/* Address */}
+            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Address -</span>
+              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
+                {bill.instituteaddress || bill.institute || ""}
+              </span>
+            </Box>
+
+            {/* Program + Academic Session */}
+            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Program -</span>
+              <span style={{ minWidth: "220px", borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
                 {bill.program || bill.programcode || ""}
               </span>
-              <span style={{ whiteSpace: "nowrap" }}>Prof./Year/Semester</span>
-              <span style={{ minWidth: "90px", borderBottom: "1px dotted #000", margin: "0 6px", paddingLeft: "4px", textAlign: "center" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", marginLeft: "12px" }}>Acad. Session -</span>
+              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
+                {bill.academicyear || bill.acadsession || ""}
+              </span>
+            </Box>
+
+            {/* Name of Exam + Year/Semester */}
+            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Name of Exam. -</span>
+              <span style={{ minWidth: "180px", borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
+                {bill.examname || ""}
+              </span>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", marginLeft: "12px" }}>Year/Semester -</span>
+              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
                 {bill.semester || ""}
               </span>
-              <span style={{ whiteSpace: "nowrap" }}>:Main/Suppl./ATKT Paper Code</span>
+            </Box>
+
+            {/* Paper Code */}
+            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Paper Code -</span>
               <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px", fontWeight: "bold" }}>
                 {bill.papercode || bill.coursecode || ""}
               </span>
             </Box>
 
-            {/* Row 6 */}
+            {/* Name of Paper */}
             <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-              <span style={{ whiteSpace: "nowrap" }}>Paper Name :</span>
+              <span style={{ whiteSpace: "nowrap", fontWeight: "bold", minWidth: "100px" }}>Name of Paper -</span>
               <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
                 {bill.papername || bill.course || ""}
-              </span>
-            </Box>
-
-            {/* Row 7 */}
-            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-              <span style={{ whiteSpace: "nowrap" }}>Department :</span>
-              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
-                {bill.department || ""}
-              </span>
-              <span style={{ whiteSpace: "nowrap", marginLeft: "14px" }}>Examiner Code :</span>
-              <span style={{ width: "20%", borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px", fontWeight: "bold" }}>
-                {bill.examinercode || ""}
-              </span>
-            </Box>
-
-            {/* Row 8 */}
-            <Box sx={{ display: "flex", alignItems: "flex-end" }}>
-              <span style={{ whiteSpace: "nowrap" }}>Date of Examination :</span>
-              <span style={{ flex: 1, borderBottom: "1px dotted #000", marginLeft: "6px", paddingLeft: "4px" }}>
-                {bill.examdate || ""}
               </span>
             </Box>
           </Box>
 
           {/* ======================= ADDRESS TO COE ======================= */}
-          <Box sx={{ fontSize: "11px", lineHeight: 1.4, mb: 1, color: "#000000" }}>
+          <Box sx={{ fontSize: "11px", lineHeight: 1.5, mb: 1, color: "#000000" }}>
             <Typography sx={{ fontWeight: 700, fontSize: "11.5px" }}>To,</Typography>
             <Box sx={{ pl: 1.5 }}>
               <Typography sx={{ fontSize: "11px", fontWeight: 600 }}>
-                {effectiveInst.coetitle || "Assistant Registrar(Confidential)"}
+                The Controller of Examinations
               </Typography>
-              <Typography sx={{ fontSize: "11px" }}>
-                {effectiveInst.institutionname}, {effectiveInst.address?.split(",")[0] || ""}
+              <Typography sx={{ fontSize: "11px", fontWeight: 600 }}>
+                {effectiveInst.institutionname},
+              </Typography>
+              <Typography sx={{ fontSize: "11px", fontWeight: 600 }}>
+                {effectiveInst.address?.includes("Bhopal") ? "Bhopal" : (effectiveInst.address?.split(",")[0] || "Bhopal")}
               </Typography>
             </Box>
             <Typography sx={{ fontWeight: 700, fontSize: "11px", mt: 0.5 }}>Sir,</Typography>
             <Typography sx={{ fontSize: "11px", pl: 1.5, textAlign: "justify" }}>
-              I submit my bill for remuneration of the work done by me asunder, payment of which may be made to meat your
+              I submit my bill for remuneration of the work done by me as under, payment of which may be made to me at your earliest convenience.
             </Typography>
           </Box>
 
-          {/* ======================= TABLE 1: REMUNERATION WORK ======================= */}
+          {/* ======================= TABLE 1: REMUNERATION WORK (PDF FORMAT) ======================= */}
           <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000000", fontSize: "10.5px", marginBottom: 0 }}>
             <thead>
               <tr style={{ background: "#f8fafc", textAlign: "center" }}>
@@ -388,7 +346,7 @@ export default function ConductExam2RemunerationBillPrint() {
                   Assignment
                 </th>
                 <th style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center", width: "18%", fontWeight: "bold" }}>
-                  No.of Examinees/<br />Answer Books
+                  No.of Examinees/<br />Answer Books/Days
                 </th>
                 <th style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "center", width: "16%", fontWeight: "bold" }}>
                   Rate of<br />Remuneration
@@ -399,82 +357,71 @@ export default function ConductExam2RemunerationBillPrint() {
               </tr>
             </thead>
             <tbody>
+              {/* Row 1 - Evaluation (header-like, empty) */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Setting of Questions Papers/Translation/Moderation</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center" }}>{settingAssignment.count || ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right" }}>{settingAssignment.rate ? money(settingAssignment.rate) : ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{settingAssignment.amount ? money(settingAssignment.amount) : "-"}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>Evaluation</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
               </tr>
+              {/* Row 2 - Setting of Question Papers */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Evaluation / Revaluation/Retotaling of answer book/thesis</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center" }}>{evalAssignment.count || ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right" }}>{evalAssignment.rate ? money(evalAssignment.rate) : ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{evalAssignment.amount ? money(evalAssignment.amount) : "-"}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Setting of Questions Papers and Translation</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
               </tr>
+              {/* Row 3 - Evaluation / Revaluation (filled with data) */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Practical/Clinical Examination/Viva-Voce/Misc.</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center" }}>{practicalAssignment.count || ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right" }}>{practicalAssignment.rate ? money(practicalAssignment.rate) : ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{practicalAssignment.amount ? money(practicalAssignment.amount) : "-"}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>Evaluation / Revaluation / U.F.M of answer book/thesis</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center", fontWeight: "bold" }}>{evalAssignment.count || ""}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{evalAssignment.rate ? money(evalAssignment.rate) : ""}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{evalAssignment.amount ? `${money(evalAssignment.amount)}/-` : "-"}</td>
               </tr>
+              {/* Row 4 - Tabulation Checking */}
               <tr>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontStyle: "italic" }}>Postal Charges*etc.(Receipt to be enclosed)</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center" }}>{postalAssignment.count || ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right" }}>{postalAssignment.rate ? money(postalAssignment.rate) : ""}</td>
-                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: "bold" }}>{postalAssignment.amount ? money(postalAssignment.amount) : "-"}</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Tabulation Checking / Retotaling / Coding / Decoding</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
               </tr>
-            </tbody>
-          </table>
-
-          {/* ======================= TABLE 2: TRAVELING DETAILS ======================= */}
-          <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000000", borderTop: "none", fontSize: "10.5px" }}>
-            <thead>
-              <tr style={{ background: "#ffff00", color: "#000000" }}>
-                <th colSpan={5} style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center", fontWeight: "bold", fontSize: "11px" }}>
-                  Details of Traveling for the Meeting / Examination Work
-                </th>
-              </tr>
-              <tr style={{ background: "#ffff00", color: "#000000" }}>
-                <th style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center", width: "18%", fontWeight: "bold" }}>Date</th>
-                <th style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center", width: "22%", fontWeight: "bold" }}>From</th>
-                <th style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center", width: "22%", fontWeight: "bold" }}>To</th>
-                <th style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center", width: "20%", fontWeight: "bold" }}>Mode of Traveling</th>
-                <th style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center", width: "18%", fontWeight: "bold" }}>Amount (Rs.)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {travelDetails && travelDetails.length > 0 ? (
-                travelDetails.map((t, idx) => (
-                  <tr key={idx}>
-                    <td style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center" }}>{t.date || ""}</td>
-                    <td style={{ border: "1px solid #000", padding: "3px 6px" }}>{t.from || ""}</td>
-                    <td style={{ border: "1px solid #000", padding: "3px 6px" }}>{t.to || ""}</td>
-                    <td style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "center" }}>{t.mode || ""}</td>
-                    <td style={{ border: "1px solid #000", padding: "3px 6px", textAlign: "right", fontWeight: "bold" }}>{t.amount ? money(t.amount) : "-"}</td>
-                  </tr>
-                ))
-              ) : (
-                <>
-                  <tr>
-                    <td style={{ border: "1px solid #000", padding: "5px 6px" }}>&nbsp;</td>
-                    <td style={{ border: "1px solid #000", padding: "5px 6px" }}>&nbsp;</td>
-                    <td style={{ border: "1px solid #000", padding: "5px 6px" }}>&nbsp;</td>
-                    <td style={{ border: "1px solid #000", padding: "5px 6px" }}>&nbsp;</td>
-                    <td style={{ border: "1px solid #000", padding: "5px 6px", textAlign: "right" }}>-</td>
-                  </tr>
-                </>
-              )}
+              {/* Row 5 - VFS/Moderation */}
               <tr>
-                <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 10px", textAlign: "right", fontWeight: "bold", fontSize: "11.5px" }}>
-                  Grand Total =
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>VFS/Moderation/Scrutiny/Result Tabulation / Typing</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+              </tr>
+              {/* Row 6 - Dissertation */}
+              <tr>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Evaluation of Dissertation / thesis</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+              </tr>
+              {/* Row 7 - Practical/Viva */}
+              <tr>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>Practical / Clinical Examination / Viva-Voce /Misc.</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>&nbsp;</td>
+              </tr>
+              {/* Grand Total row */}
+              <tr>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontSize: "9.5px", fontStyle: "italic" }}>
+                  *Only for sending answer books/Marks/Question Paper
                 </td>
-                <td style={{ border: "1px solid #000", padding: "4px 6px", textAlign: "right", fontWeight: 900, fontSize: "12px" }}>
-                  {grandTotal}
+                <td colSpan={2} style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "center", fontWeight: "bold", fontSize: "11px" }}>
+                  GRAND TOTAL
+                </td>
+                <td style={{ border: "1px solid #000", padding: "3.5px 6px", textAlign: "right", fontWeight: 900, fontSize: "11.5px" }}>
+                  Rs. {grandTotal}/-
                 </td>
               </tr>
+              {/* Total in words */}
               <tr>
-                <td colSpan={5} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", fontSize: "11px" }}>
-                  Total in Word (Rs.) : &nbsp;&nbsp; {grandTotalWords}
+                <td colSpan={4} style={{ border: "1px solid #000", padding: "4px 8px", fontWeight: "bold", fontSize: "11px" }}>
+                  Total (in Words) : &nbsp;&nbsp; {grandTotalWords}
                 </td>
               </tr>
             </tbody>
@@ -482,7 +429,7 @@ export default function ConductExam2RemunerationBillPrint() {
 
           {/* ======================= CERTIFICATION ======================= */}
           <Typography sx={{ fontSize: "10px", lineHeight: 1.4, my: 0.8, textAlign: "justify", color: "#000000" }}>
-            I Certified that, I have not received TA./D.A. from any other source for this traveling and the claim has been preferred for the first time in accordance with the schedule of remuneration approved by the University.
+            Certified that the claim has been presented for the first time in accordance with the schedule of remuneration approved by the university.
           </Typography>
 
           {/* ======================= PERFORATION / CUT LINE ======================= */}
@@ -492,48 +439,61 @@ export default function ConductExam2RemunerationBillPrint() {
 
           {/* ======================= BANK PARTICULARS (RTGS/NEFT) ======================= */}
           <Box sx={{ my: 0.6 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.3 }}>
-              <Typography sx={{ fontWeight: "bold", fontSize: "11.5px", letterSpacing: "0.5px" }}>
-                Fund Transfer Through: RTGS/NEFT
-              </Typography>
-              <Typography sx={{ fontSize: "11px", fontWeight: 600 }}>
-                Date: <span style={{ borderBottom: "1px dotted #000", padding: "0 15px" }}>{bill.billdate ? new Date(bill.billdate).toLocaleDateString("en-GB") : new Date().toLocaleDateString("en-GB")}</span>
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: "9.5px", fontStyle: "italic", mb: 0.4 }}>
+            <Typography sx={{ fontWeight: "bold", fontSize: "11.5px", letterSpacing: "0.5px", textAlign: "center", mb: 0.2 }}>
+              Fund Transfer Through : RTGS/NEFT
+            </Typography>
+            <Typography sx={{ fontSize: "10px", textAlign: "center", mb: 0.4 }}>
               (Please fill all the detail Mandatorily as per your Bank Account)
             </Typography>
 
             <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000000", fontSize: "10.5px" }}>
               <tbody>
+                {/* Row 1: Name | Mobile */}
                 <tr>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "24%", fontWeight: "bold" }}>
-                    Name of the Applicant
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "22%", fontWeight: "bold" }}>
+                    Name
                   </td>
-                  <td colSpan={3} style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "28%", fontWeight: "bold" }}>
                     {bill.examinername || ""}
                   </td>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "22%", fontWeight: "bold" }}>
+                    Mobile
+                  </td>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "28%", fontWeight: "bold" }}>
+                    {bill.contactno || bill.phone || ""}
+                  </td>
                 </tr>
+                {/* Row 2: Amount | PAN No */}
                 <tr>
                   <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
                     Amount
                   </td>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "26%", fontWeight: "bold" }}>
-                    Rs. {grandTotal}
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
+                    {grandTotal}/-
                   </td>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "25%", fontWeight: "bold" }}>
-                    Applicant's PAN No.
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
+                    PAN No.
                   </td>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", width: "25%", fontWeight: "bold" }}>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
                     {bill.panno || "-"}
                   </td>
                 </tr>
+                {/* Row 3: Account No (full row) */}
                 <tr>
                   <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
                     Account No.
                   </td>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
+                  <td colSpan={3} style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
                     {bill.accountno || "-"}
+                  </td>
+                </tr>
+                {/* Row 4: Banks' Name & Branch | IFSC Code */}
+                <tr>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
+                    Banks' Name &amp; Branch
+                  </td>
+                  <td style={{ border: "1px solid #000", padding: "3.5px 6px" }}>
+                    {bill.bankname || ""} {bill.bankbranch ? `(${bill.bankbranch})` : ""}
                   </td>
                   <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
                     IFSC Code
@@ -542,25 +502,37 @@ export default function ConductExam2RemunerationBillPrint() {
                     {bill.ifsccode || "-"}
                   </td>
                 </tr>
-                <tr>
-                  <td style={{ border: "1px solid #000", padding: "3.5px 6px", fontWeight: "bold" }}>
-                    Banks 'Name &amp; Branch
-                  </td>
-                  <td colSpan={3} style={{ border: "1px solid #000", padding: "3.5px 6px" }}>
-                    {bill.bankname || ""} {bill.bankbranch ? `(${bill.bankbranch})` : ""}
-                  </td>
-                </tr>
               </tbody>
             </table>
           </Box>
 
-          {/* ======================= SIGNATURE BLOCK ======================= */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", pt: 2.5, pb: 0.5 }}>
+          {/* ======================= PLACE/DATE + CLAIMANT SIGNATURE ======================= */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", pt: 1.5, pb: 0.5, fontSize: "11px", color: "#000000" }}>
+            {/* Left: Place and Date */}
+            <Box>
+              <Typography sx={{ fontSize: "11px", mb: 0.5 }}>
+                Place : Bhopal
+              </Typography>
+              <Typography sx={{ fontSize: "11px" }}>
+                Date :
+              </Typography>
+            </Box>
+            {/* Right: Signature of Claimant box */}
+            <Box sx={{ textAlign: "right" }}>
+              <Box sx={{ border: "1px solid #000", width: "160px", height: "45px", mb: 0.3 }} />
+              <Typography sx={{ fontSize: "10.5px", fontWeight: "bold" }}>
+                Signature of the Claimant with Date
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* ======================= BOTTOM SIGNATURES (AR + COE) ======================= */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", pt: 2, pb: 0.5 }}>
             <Typography sx={{ fontWeight: "bold", fontSize: "11.5px" }}>
-              Incharge-Conduct
+              Signature of Assistant Registrar
             </Typography>
             <Typography sx={{ fontWeight: "bold", fontSize: "11.5px" }}>
-              Signature of the Claimant with date
+              Signature of Controller of Examination
             </Typography>
           </Box>
         </Box>

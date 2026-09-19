@@ -16,7 +16,8 @@ import {
   Print as PrintIcon,
   ArrowBack as ArrowBackIcon,
   Assessment as AssessmentIcon,
-  FilterAlt as FilterAltIcon
+  FilterAlt as FilterAltIcon,
+  Download as DownloadIcon
 } from "@mui/icons-material";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -140,6 +141,18 @@ export default function ConductExam2AwardListPage() {
     window.print();
   };
 
+  const handleDownload = () => {
+    const params = new URLSearchParams({
+      colid: global1.colid,
+      academicyear: filters.academicyear,
+      examcode: filters.examcode,
+      programcode: filters.programcode,
+      coursecode: filters.coursecode,
+      valuationtype: filters.valuationtype || "V1"
+    });
+    window.open(`/api/v2/conductexam2/award-list/download?${params}`, "_blank");
+  };
+
   const meta = reportData?.meta || {};
   const students = reportData?.students || [];
   const stats = reportData?.stats || {};
@@ -233,6 +246,16 @@ export default function ConductExam2AwardListPage() {
                   sx={{ fontWeight: 700 }}
                 >
                   Print / Save PDF
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleDownload}
+                  disabled={!reportData || students.length === 0}
+                  sx={{ fontWeight: 700 }}
+                >
+                  Download CSV
                 </Button>
                 <Button
                   variant="outlined"

@@ -1193,6 +1193,9 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
         paperid: selectedCourse.paperid,
         student: selectedStudent,
         ...paper,
+        examcode: selectedCourse?.examcode || paper?.examcode,
+        coursecode: selectedCourse?.coursecode || paper?.coursecode,
+        academicyear: selectedCourse?.academicyear || paper?.academicyear,
         valuationtype: valuationType,
         evaluationTimeSeconds: timerSecondsRef.current || 0,
         verifiedPages: Array.from(verifiedPages),
@@ -1213,8 +1216,9 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
             colid: global1.colid,
             examineremail,
             paperid: selectedCourse.paperid,
-            examcode: selectedCourse.examcode,
-            coursecode: selectedCourse.coursecode
+            examcode: selectedCourse?.examcode || paper?.examcode,
+            coursecode: selectedCourse?.coursecode || paper?.coursecode,
+            valuationtype: valuationType
           }
         });
         const updatedStudents = refreshedRes.data?.students || [];
@@ -1223,7 +1227,10 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
         if (nextTarget) {
           const nextIdx = updatedStudents.findIndex((s) => s._id === nextStudentId);
           setMessage(`${scriptLabel} finalized! Automatically loaded Answer Script #${nextIdx + 1}`);
-          await selectStudent(nextTarget, selectedCourse.paperid, paper, flatQuestions);
+          await selectStudent(nextTarget, selectedCourse.paperid, paper, flatQuestions, valuationType);
+        } else {
+          alert("All answer scripts for this course have been evaluated!");
+          handleBackToList();
         }
       } else {
         alert("All answer scripts for this course have been evaluated!");

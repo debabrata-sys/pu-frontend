@@ -1249,6 +1249,9 @@ import { ConductExamStationaryMasterPage, ConductExamStationaryRequirementPage }
 import { ConductExamGeneratorAllocationPage, ConductExamGeneratorMasterPage, ConductExamGeneratorRequirementPage } from "./pages/ConductExamGeneratorPages";
 import { ConductExamOnScreenMarkingPage, ConductExamScoreRulePage } from "./pages/ConductExamOnScreenMarkingPages";
 import { ConductExamFeePage, ConductExamFormBuilderPage, ConductExamStudentFormPage, StudentExamDynamicFormPage } from "./pages/ConductExamFormPages";
+import StudentExamDynamicForm2Page from "./pages/StudentExamDynamicForm2Page";
+import FacultySelfRegistrationPage from "./pages/FacultySelfRegistrationPage";
+import FacultyRegistrationAdminPage from "./pages/FacultyRegistrationAdminPage";
 import {
   ExamAppealAllocationPage,
   ExamAppealApprovalPage,
@@ -4234,6 +4237,9 @@ function App() {
         <Route path="/verify-hallticket-blockchain" element={<PublicHallTicketBlockchainVerifyPage />} />
         <Route path="/student-exam-registration" element={<StudentExamRegistrationPage />} />
         <Route path="/student-exam-dynamic-form" element={<StudentExamDynamicFormPage />} />
+        <Route path="/student-exam-dynamic-form-2" element={<StudentExamDynamicForm2Page />} />
+        <Route path="/faculty-registration" element={<FacultySelfRegistrationPage />} />
+        <Route path="/faculty-registration-admin" element={<FacultyRegistrationAdminPage />} />
         <Route path="/conduct-exam-student-form" element={<ConductExamStudentFormPage />} />
         <Route path="/phd-thesis-assignment" element={<PhdThesisAssignmentPage />} />
         <Route path="/phd-thesis-assignment-workflow" element={<PhdThesisAssignmentWorkflowPage />} />

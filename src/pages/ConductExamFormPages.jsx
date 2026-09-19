@@ -1399,3 +1399,5 @@ export function ConductExamStudentFormPage() {
     </MenuPageShell>
   );
 }
+
+export { default as StudentExamDynamicForm2Page } from "./StudentExamDynamicForm2Page";

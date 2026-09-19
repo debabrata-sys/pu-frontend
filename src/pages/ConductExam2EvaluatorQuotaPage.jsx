@@ -28,7 +28,8 @@ import {
   Print,
   Refresh,
   Group,
-  Person
+  Person,
+  Download as DownloadIcon
 } from "@mui/icons-material";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -158,6 +159,18 @@ export default function ConductExam2EvaluatorQuotaPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadAwardList = (row, valuationtype) => {
+    const params = new URLSearchParams({
+      colid: global1.colid,
+      examcode: row.examCode || "",
+      coursecode: row.subjectCode || "",
+      academicyear: row.academicyear || "",
+      valuationtype
+    });
+    const url = `/api/v2/conductexam2/award-list/download?${params.toString()}`;
+    window.open(url, "_blank");
   };
 
   return (
@@ -333,7 +346,7 @@ export default function ConductExam2EvaluatorQuotaPage() {
             </Box>
 
             <TableContainer sx={{ maxHeight: "75vh" }}>
-              <Table stickyHeader size="small" sx={{ minWidth: 1000 }}>
+              <Table stickyHeader size="small" sx={{ minWidth: 1350 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#f3f4f6", width: 60, textAlign: "center" }}>S.No</TableCell>
@@ -345,13 +358,17 @@ export default function ConductExam2EvaluatorQuotaPage() {
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#f3f4f6", textAlign: "center" }}>Total Scripts</TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#f0fdf4", color: "#166534", textAlign: "center" }}>No.Scripts Evaluated</TableCell>
                     <TableCell sx={{ fontWeight: 800, bgcolor: "#fef3c7", color: "#92400e", textAlign: "center" }}>Pending Scripts</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#eff6ff", color: "#1e40af", textAlign: "center", minWidth: 110 }}>V1 Award List</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#f0fdf4", color: "#166534", textAlign: "center", minWidth: 110 }}>V2 Award List</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#fdf4ff", color: "#7e22ce", textAlign: "center", minWidth: 110 }}>V3 Award List</TableCell>
+                    <TableCell sx={{ fontWeight: 800, bgcolor: "#fff1f2", color: "#be123c", textAlign: "center", minWidth: 110 }}>V4 Award List</TableCell>
                   </TableRow>
                 </TableHead>
 
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} sx={{ textAlign: "center", py: 5 }}>
+                      <TableCell colSpan={13} sx={{ textAlign: "center", py: 5 }}>
                         <CircularProgress size={36} />
                         <Typography variant="body2" sx={{ mt: 1.5 }} color="text.secondary">
                           Loading Evaluator Quota Report...
@@ -360,7 +377,7 @@ export default function ConductExam2EvaluatorQuotaPage() {
                     </TableRow>
                   ) : filteredRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} sx={{ textAlign: "center", py: 5, color: "#6b7280" }}>
+                      <TableCell colSpan={13} sx={{ textAlign: "center", py: 5, color: "#6b7280" }}>
                         No evaluator quota allocations found matching the selected filters.
                       </TableCell>
                     </TableRow>
@@ -379,6 +396,59 @@ export default function ConductExam2EvaluatorQuotaPage() {
                         </TableCell>
                         <TableCell sx={{ textAlign: "center", bgcolor: "#fef3c7", fontWeight: 700, color: "#b45309" }}>
                           {row.pendingScripts}
+                        </TableCell>
+                        {/* V1 Award List Download */}
+                        <TableCell sx={{ textAlign: "center", bgcolor: "#eff6ff" }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleDownloadAwardList(row, "V1")}
+                            disabled={row.noScriptsEvaluated === 0}
+                            sx={{ minWidth: 90, fontSize: "11px", fontWeight: 700, textTransform: "none", py: 0.3 }}
+                          >
+                            V1 CSV
+                          </Button>
+                        </TableCell>
+                        {/* V2 Award List Download */}
+                        <TableCell sx={{ textAlign: "center", bgcolor: "#f0fdf4" }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                            startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleDownloadAwardList(row, "V2")}
+                            sx={{ minWidth: 90, fontSize: "11px", fontWeight: 700, textTransform: "none", py: 0.3 }}
+                          >
+                            V2 CSV
+                          </Button>
+                        </TableCell>
+                        {/* V3 Award List Download */}
+                        <TableCell sx={{ textAlign: "center", bgcolor: "#fdf4ff" }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="secondary"
+                            startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleDownloadAwardList(row, "V3")}
+                            sx={{ minWidth: 90, fontSize: "11px", fontWeight: 700, textTransform: "none", py: 0.3 }}
+                          >
+                            V3 CSV
+                          </Button>
+                        </TableCell>
+                        {/* V4 Award List Download */}
+                        <TableCell sx={{ textAlign: "center", bgcolor: "#fff1f2" }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleDownloadAwardList(row, "V4")}
+                            sx={{ minWidth: 90, fontSize: "11px", fontWeight: 700, textTransform: "none", py: 0.3 }}
+                          >
+                            V4 CSV
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
