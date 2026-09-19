@@ -2695,6 +2695,13 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Exam auto scheduler 3" />}
           </ListItem>
 
+          <ListItem button component={RouterLink} to="/conduct-exam-auto-scheduler-4">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Exam auto scheduler 4" />}
+          </ListItem>
+
           <ListItem button component={RouterLink} to="/conduct-exam-atkt-scheduler">
             <ListItemIcon>
               <PersonIcon />

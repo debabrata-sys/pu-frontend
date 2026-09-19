@@ -1144,7 +1144,7 @@ import ConductExamDatesPage from "./pages/ConductExamDatesPage";
 import ConductExamFormFillupDatesPage from "./pages/ConductExamFormFillupDatesPage";
 import ConductExamCoursePage from "./pages/ConductExamCoursePage";
 import ConductExamCourseSchedulerPage from "./pages/ConductExamCourseSchedulerPage";
-import { ConductExamAutoScheduler2Page, ConductExamAutoScheduler3Page, ConductExamPopulateCoursesPage } from "./pages/ConductExamPopulateAndSchedulerPages";
+import { ConductExamAutoScheduler2Page, ConductExamAutoScheduler3Page, ConductExamAutoScheduler4Page, ConductExamPopulateCoursesPage } from "./pages/ConductExamPopulateAndSchedulerPages";
 import ConductExamAtktSchedulerPage from "./pages/ConductExamAtktSchedulerPage";
 import ConductExamRollPage from "./pages/ConductExamRollPage";
 import ConductExamRollListReportPage from "./pages/ConductExamRollListReportPage";
@@ -4222,6 +4222,8 @@ function App() {
         <Route path="/conduct-exam-populate-courses" element={<ConductExamPopulateCoursesPage />} />
         <Route path="/conduct-exam-auto-scheduler-2" element={<ConductExamAutoScheduler2Page />} />
         <Route path="/conduct-exam-auto-scheduler-3" element={<ConductExamAutoScheduler3Page />} />
+        <Route path="/conduct-exam-auto-scheduler-4" element={<ConductExamAutoScheduler4Page />} />
+        <Route path="/conduct-exam-scheduler" element={<ConductExamAutoScheduler4Page />} />
         <Route path="/conduct-exam-atkt-scheduler" element={<ConductExamAtktSchedulerPage />} />
         <Route path="/examroll" element={<ConductExamRollPage />} />
         <Route path="/conduct-exam-roll-list-report" element={<ConductExamRollListReportPage />} />
