@@ -58,6 +58,10 @@ export default function EvaluatorRegistrationPublicPage() {
   const [signaturelink, setSignaturelink] = useState("");
   const [signatureUploading, setSignatureUploading] = useState(false);
 
+  const [pancardPreview, setPancardPreview] = useState("");
+  const [pancardlink, setPancardlink] = useState("");
+  const [pancardUploading, setPancardUploading] = useState(false);
+
   // Bank Details State
   const [bankData, setBankData] = useState({
     accountnumber: "",
@@ -181,6 +185,26 @@ export default function EvaluatorRegistrationPublicPage() {
     }
   };
 
+  const handlePanCardSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("PAN card file size must be less than 2 MB");
+      return;
+    }
+    setPancardPreview(URL.createObjectURL(file));
+    setPancardUploading(true);
+    try {
+      const url = await uploadFile(file, "pancard");
+      setPancardlink(url);
+    } catch (err) {
+      alert(err.message || "Failed to upload PAN card");
+      setPancardPreview("");
+    } finally {
+      setPancardUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -205,6 +229,14 @@ export default function EvaluatorRegistrationPublicPage() {
           errors[f.fieldname] = "Please enter a valid 10-digit mobile number";
         }
       }
+    }
+
+    // Confirmation matching checks
+    if (dynamicValues.confirm_email && dynamicValues.email && dynamicValues.email.trim().toLowerCase() !== dynamicValues.confirm_email.trim().toLowerCase()) {
+      errors.confirm_email = "Email Id and Confirm Email Id do not match";
+    }
+    if (dynamicValues.confirm_phone && dynamicValues.phone && dynamicValues.phone.trim() !== dynamicValues.confirm_phone.trim()) {
+      errors.confirm_phone = "Mobile Number and Confirm Mobile Number do not match";
     }
 
     // Validate Bank Details if enabled
@@ -254,7 +286,8 @@ export default function EvaluatorRegistrationPublicPage() {
         customFields: customFieldsObj,
         photolink,
         signaturelink,
-        bankDetails: formConfig?.includeBankDetails ? bankData : null
+        documentlinks: { pancard: pancardlink },
+        bankDetails: formConfig?.includeBankDetails ? { ...bankData, pancardlink } : null
       };
 
       const res = await ep1.post("/api/v2/evaluator-registration/submit", payload);
@@ -368,9 +401,20 @@ export default function EvaluatorRegistrationPublicPage() {
 
         <Divider sx={{ my: 1.5 }} />
 
-        <Typography variant="h4" fontWeight="bold" sx={{ mt: 1 }}>
-          {formConfig?.title || "Evaluator / Faculty Registration"}
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
+          <Typography variant="h4" fontWeight="bold">
+            {formConfig?.title || "Registration Form"}
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => window.history.back()}
+            sx={{ textTransform: "none", borderColor: "#d32f2f", color: "#d32f2f" }}
+          >
+            Close (https://onmark.co.in/people_uni/Welcome)
+          </Button>
+        </Box>
 
         {formConfig?.description && (
           <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
@@ -391,199 +435,113 @@ export default function EvaluatorRegistrationPublicPage() {
           </Alert>
         )}
 
-        {/* Dynamic Fields Section */}
-        <Paper elevation={2} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
-          <Typography variant="h6" fontWeight="bold" color="#1e3c72" gutterBottom>
-            Registration Information
-          </Typography>
-          <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
-            Fields marked with an asterisk (*) are mandatory.
-          </Typography>
+        {/* Dynamic Fields Grouped by Section */}
+        {(() => {
+          const sectionMap = {};
+          (formConfig?.fields || []).forEach((f) => {
+            const sec = f.section || "General Information";
+            if (!sectionMap[sec]) sectionMap[sec] = [];
+            sectionMap[sec].push(f);
+          });
 
-          <Grid container spacing={2.5}>
-            {(formConfig?.fields || []).map((f) => {
-              const val = dynamicValues[f.fieldname] ?? "";
-              const err = fieldErrors[f.fieldname];
+          return Object.entries(sectionMap).map(([sectionName, sectionFields]) => (
+            <Paper elevation={2} sx={{ p: 4, mb: 4, borderRadius: 2 }} key={sectionName}>
+              <Typography variant="h6" fontWeight="bold" color="#1e3c72" gutterBottom>
+                {sectionName}
+              </Typography>
+              <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
+                Fields marked with an asterisk (*) are mandatory.
+              </Typography>
 
-              // Render Select Dropdown
-              if (f.type === "select") {
-                return (
-                  <Grid item xs={12} sm={6} key={f.fieldname}>
-                    <FormControl fullWidth size="medium" error={!!err} required={!!f.required}>
-                      <InputLabel>{f.label}</InputLabel>
-                      <Select
-                        value={val}
+              <Grid container spacing={2.5}>
+                {sectionFields.map((f) => {
+                  const val = dynamicValues[f.fieldname] ?? "";
+                  const err = fieldErrors[f.fieldname];
+
+                  // Render Select Dropdown
+                  if (f.type === "select") {
+                    return (
+                      <Grid item xs={12} sm={6} key={f.fieldname}>
+                        <FormControl fullWidth size="medium" error={!!err} required={!!f.required}>
+                          <InputLabel>{f.label}</InputLabel>
+                          <Select
+                            value={val}
+                            label={f.label}
+                            onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
+                          >
+                            <MenuItem value="">
+                              <em>-- Select {f.label} --</em>
+                            </MenuItem>
+                            {(f.options || []).map((opt) => (
+                              <MenuItem key={opt} value={opt}>
+                                {opt}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          {err && <FormHelperText>{err}</FormHelperText>}
+                        </FormControl>
+                      </Grid>
+                    );
+                  }
+
+                  // Render Multi-line Textarea
+                  if (f.type === "textarea") {
+                    return (
+                      <Grid item xs={12} key={f.fieldname}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          label={f.label}
+                          value={val}
+                          onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
+                          required={!!f.required}
+                          error={!!err}
+                          helperText={err}
+                        />
+                      </Grid>
+                    );
+                  }
+
+                  // Render Date Input
+                  if (f.type === "date") {
+                    return (
+                      <Grid item xs={12} sm={6} key={f.fieldname}>
+                        <TextField
+                          fullWidth
+                          type="date"
+                          label={f.label}
+                          InputLabelProps={{ shrink: true }}
+                          value={val}
+                          onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
+                          required={!!f.required}
+                          error={!!err}
+                          helperText={err}
+                        />
+                      </Grid>
+                    );
+                  }
+
+                  // Default Text / Number / Email / Tel Input
+                  return (
+                    <Grid item xs={12} sm={6} key={f.fieldname}>
+                      <TextField
+                        fullWidth
+                        type={f.type || "text"}
                         label={f.label}
+                        value={val}
                         onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
-                      >
-                        <MenuItem value="">
-                          <em>-- Select {f.label} --</em>
-                        </MenuItem>
-                        {(f.options || []).map((opt) => (
-                          <MenuItem key={opt} value={opt}>
-                            {opt}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {err && <FormHelperText>{err}</FormHelperText>}
-                    </FormControl>
-                  </Grid>
-                );
-              }
-
-              // Render Multi-line Textarea
-              if (f.type === "textarea") {
-                return (
-                  <Grid item xs={12} key={f.fieldname}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label={f.label}
-                      value={val}
-                      onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
-                      required={!!f.required}
-                      error={!!err}
-                      helperText={err}
-                    />
-                  </Grid>
-                );
-              }
-
-              // Render Date Input
-              if (f.type === "date") {
-                return (
-                  <Grid item xs={12} sm={6} key={f.fieldname}>
-                    <TextField
-                      fullWidth
-                      type="date"
-                      label={f.label}
-                      InputLabelProps={{ shrink: true }}
-                      value={val}
-                      onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
-                      required={!!f.required}
-                      error={!!err}
-                      helperText={err}
-                    />
-                  </Grid>
-                );
-              }
-
-              // Default Text / Number / Email / Tel Input
-              return (
-                <Grid item xs={12} sm={6} key={f.fieldname}>
-                  <TextField
-                    fullWidth
-                    type={f.type || "text"}
-                    label={f.label}
-                    value={val}
-                    onChange={(e) => handleDynamicChange(f.fieldname, e.target.value)}
-                    required={!!f.required}
-                    error={!!err}
-                    helperText={err}
-                  />
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Paper>
-
-        {/* Modular Section: Bank Details */}
-        {formConfig?.includeBankDetails && (
-          <Paper elevation={2} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="#1e3c72" gutterBottom>
-              Remuneration & Bank Account Details
-            </Typography>
-            <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
-              Required for direct evaluation honorarium and remuneration disbursement.
-            </Typography>
-
-            <Grid container spacing={2.5}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Bank Account Number"
-                  value={bankData.accountnumber}
-                  onChange={(e) => handleBankChange("accountnumber", e.target.value)}
-                  required
-                  error={!!fieldErrors.accountnumber}
-                  helperText={fieldErrors.accountnumber}
-                />
+                        required={!!f.required}
+                        error={!!err}
+                        helperText={err}
+                      />
+                    </Grid>
+                  );
+                })}
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Confirm Account Number"
-                  value={bankData.confirmaccountnumber}
-                  onChange={(e) => handleBankChange("confirmaccountnumber", e.target.value)}
-                  required
-                  error={!!fieldErrors.confirmaccountnumber}
-                  helperText={fieldErrors.confirmaccountnumber}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Account Holder Name"
-                  value={bankData.accountholdername}
-                  onChange={(e) => handleBankChange("accountholdername", e.target.value)}
-                  required
-                  error={!!fieldErrors.accountholdername}
-                  helperText={fieldErrors.accountholdername}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Bank Name"
-                  value={bankData.bankname}
-                  onChange={(e) => handleBankChange("bankname", e.target.value)}
-                  required
-                  error={!!fieldErrors.bankname}
-                  helperText={fieldErrors.bankname}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="IFSC Code"
-                  value={bankData.ifsccode}
-                  onChange={(e) => handleBankChange("ifsccode", e.target.value.toUpperCase())}
-                  required
-                  error={!!fieldErrors.ifsccode}
-                  helperText={fieldErrors.ifsccode}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Confirm IFSC Code"
-                  value={bankData.confirmifsccode}
-                  onChange={(e) => handleBankChange("confirmifsccode", e.target.value.toUpperCase())}
-                  required
-                  error={!!fieldErrors.confirmifsccode}
-                  helperText={fieldErrors.confirmifsccode}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Branch Name"
-                  value={bankData.branchname}
-                  onChange={(e) => handleBankChange("branchname", e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="PAN Card Number"
-                  value={bankData.pancardnumber}
-                  onChange={(e) => handleBankChange("pancardnumber", e.target.value.toUpperCase())}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        )}
+            </Paper>
+          ));
+        })()}
 
         {/* Modular Section: Photo & Signature Uploads */}
         {(formConfig?.includePhoto || formConfig?.includeSignature) && (
@@ -592,7 +550,7 @@ export default function EvaluatorRegistrationPublicPage() {
               Photographs & Verification Documents
             </Typography>
             <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
-              Allowed formats: JPG, PNG, GIF, PDF (Max 2MB per file)
+              (Note: Upload files in .gif/.jpg/.png format and file size should be less than 300 kb)
             </Typography>
 
             <Grid container spacing={3}>
@@ -600,7 +558,7 @@ export default function EvaluatorRegistrationPublicPage() {
                 <Grid item xs={12} sm={6}>
                   <Card variant="outlined" sx={{ p: 2, textAlign: "center" }}>
                     <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                      Passport Size Photograph
+                      Photograph*
                     </Typography>
                     {photoPreview ? (
                       <Box sx={{ my: 1, position: "relative" }}>
@@ -630,13 +588,13 @@ export default function EvaluatorRegistrationPublicPage() {
                           startIcon={<CloudUploadIcon />}
                           disabled={photoUploading}
                         >
-                          {photoUploading ? "Uploading..." : "Select Photo"}
+                          {photoUploading ? "Uploading..." : "Choose File"}
                           <input type="file" accept="image/*" hidden onChange={handlePhotoSelect} />
                         </Button>
                       </Box>
                     )}
                     <Typography variant="caption" color="textSecondary" display="block">
-                      Recent frontal headshot
+                      Recent passport size photo
                     </Typography>
                   </Card>
                 </Grid>
@@ -646,7 +604,7 @@ export default function EvaluatorRegistrationPublicPage() {
                 <Grid item xs={12} sm={6}>
                   <Card variant="outlined" sx={{ p: 2, textAlign: "center" }}>
                     <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                      Specimen Signature
+                      Signature*
                     </Typography>
                     {signaturePreview ? (
                       <Box sx={{ my: 1, position: "relative" }}>
@@ -676,7 +634,7 @@ export default function EvaluatorRegistrationPublicPage() {
                           startIcon={<CloudUploadIcon />}
                           disabled={signatureUploading}
                         >
-                          {signatureUploading ? "Uploading..." : "Select Signature"}
+                          {signatureUploading ? "Uploading..." : "Choose File"}
                           <input type="file" accept="image/*,.pdf" hidden onChange={handleSignatureSelect} />
                         </Button>
                       </Box>
@@ -691,21 +649,162 @@ export default function EvaluatorRegistrationPublicPage() {
           </Paper>
         )}
 
+        {/* Modular Section: Bank Details */}
+        {formConfig?.includeBankDetails && (
+          <Paper elevation={2} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
+            <Typography variant="h6" fontWeight="bold" color="#1e3c72" gutterBottom>
+              Bank Details
+            </Typography>
+            <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 3 }}>
+              Required for evaluation remuneration and disbursement.
+            </Typography>
+
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Account Number *"
+                  value={bankData.accountnumber}
+                  onChange={(e) => handleBankChange("accountnumber", e.target.value)}
+                  required
+                  error={!!fieldErrors.accountnumber}
+                  helperText={fieldErrors.accountnumber}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Confirm Account Number *"
+                  value={bankData.confirmaccountnumber}
+                  onChange={(e) => handleBankChange("confirmaccountnumber", e.target.value)}
+                  required
+                  error={!!fieldErrors.confirmaccountnumber}
+                  helperText={fieldErrors.confirmaccountnumber}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Account Holder's Name *"
+                  value={bankData.accountholdername}
+                  onChange={(e) => handleBankChange("accountholdername", e.target.value)}
+                  required
+                  error={!!fieldErrors.accountholdername}
+                  helperText={fieldErrors.accountholdername}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Bank Name *"
+                  value={bankData.bankname}
+                  onChange={(e) => handleBankChange("bankname", e.target.value)}
+                  required
+                  error={!!fieldErrors.bankname}
+                  helperText={fieldErrors.bankname}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="IFSC Code *"
+                  value={bankData.ifsccode}
+                  onChange={(e) => handleBankChange("ifsccode", e.target.value.toUpperCase())}
+                  required
+                  error={!!fieldErrors.ifsccode}
+                  helperText={fieldErrors.ifsccode}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Confirm IFSC Code *"
+                  value={bankData.confirmifsccode}
+                  onChange={(e) => handleBankChange("confirmifsccode", e.target.value.toUpperCase())}
+                  required
+                  error={!!fieldErrors.confirmifsccode}
+                  helperText={fieldErrors.confirmifsccode}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Branch Name *"
+                  value={bankData.branchname}
+                  onChange={(e) => handleBankChange("branchname", e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="PAN Number *"
+                  value={bankData.pancardnumber}
+                  onChange={(e) => handleBankChange("pancardnumber", e.target.value.toUpperCase())}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>
+                  Upload PAN Card *
+                </Typography>
+                <Typography variant="caption" color="textSecondary" display="block" sx={{ mb: 1 }}>
+                  (Note: Upload files in .gif/.jpg/.png/.pdf format and file size should be less than 300 kb)
+                </Typography>
+                {pancardPreview ? (
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Chip label="PAN Card Selected" color="success" size="small" />
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => {
+                        setPancardPreview("");
+                        setPancardlink("");
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<CloudUploadIcon />}
+                    disabled={pancardUploading}
+                  >
+                    {pancardUploading ? "Uploading..." : "Choose File"}
+                    <input type="file" accept="image/*,.pdf" hidden onChange={handlePanCardSelect} />
+                  </Button>
+                )}
+              </Grid>
+            </Grid>
+          </Paper>
+        )}
+
         {/* Declaration & Submit Button */}
         <Paper elevation={3} sx={{ p: 3, textAlign: "center", borderRadius: 2 }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
             By clicking submit, I certify that the information entered above is correct and genuine.
           </Typography>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            size="large"
-            disabled={submitting}
-            sx={{ px: 6, py: 1.5, fontSize: "16px", fontWeight: "bold", background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)" }}
-          >
-            {submitting ? <CircularProgress size={26} color="inherit" /> : "Submit Registration"}
-          </Button>
+          <Box display="flex" justifyContent="center" alignItems="center" gap={2} flexWrap="wrap">
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              size="large"
+              disabled={submitting}
+              sx={{ px: 5, py: 1.2, fontSize: "16px", fontWeight: "bold", background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)" }}
+            >
+              {submitting ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              size="large"
+              onClick={() => window.history.back()}
+              sx={{ textTransform: "none", borderColor: "#d32f2f", color: "#d32f2f" }}
+            >
+              Close (https://onmark.co.in/people_uni/Welcome)
+            </Button>
+          </Box>
         </Paper>
       </form>
     </Container>
