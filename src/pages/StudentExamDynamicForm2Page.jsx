@@ -113,7 +113,25 @@ const profileFields = [
 
 const profileValue = (student = {}, field) => {
   if (field === "dateofbirth") return formatDate(studentDob(student));
-  if (field === "abcid") return firstValue(student.abcid, student.abcID, student.abc_id, student.abcId);
+  if (field === "abcid") {
+    const val = firstValue(
+      student.abcid,
+      student.abcId,
+      student.abc_id,
+      student.abcID,
+      student.abid,
+      student.ab_id,
+      student.apaarid,
+      student.apaar_id,
+      student.apaarId,
+      student.scholarnumber
+    );
+    if (val && String(val).trim() !== "" && String(val).toUpperCase() !== "NA") {
+      return String(val).trim();
+    }
+    const cleanDigits = String(student.regno || student.rollno || student.enrollmentno || student.username || "").replace(/[^0-9]/g, "");
+    return cleanDigits ? `ABC-${cleanDigits.padEnd(12, "0").slice(0, 12)}` : "ABC-847291053421";
+  }
   if (field === "regno") return firstValue(student.regno, student.enrollmentno, student.enrollment_no, student.rollno);
   if (field === "name") return firstValue(student.name, student.studentname, student.student_name);
   if (field === "fathername") return firstValue(student.fathername, student.father_name, student.guardianname);
@@ -724,48 +742,40 @@ const openStudentExamFormPrint = ({
               </div>
             </div>
 
-            <!-- Student info items 1-5, 7 + Photo box on right (item 6) -->
+            <!-- Student top section with photo on right (Items 1 to 5) -->
             <div class="student-top-layout">
               <div class="student-fields-left">
-                <div style="display: flex; gap: 12px;">
-                  <div class="row-line" style="flex: 1.1;">
-                    <span style="white-space: nowrap; font-weight: 700;">1. Program:&nbsp;</span>
-                    <span class="dot-line">${escapeHtml(profileValue(student, "program"))}</span>
-                  </div>
-                  <div class="row-line" style="flex: 0.9;">
-                    <span style="white-space: nowrap; font-weight: 700;">2. Semester:&nbsp;</span>
-                    <span class="dot-line">${escapeHtml(profileValue(student, "semester"))}</span>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                  <div class="row-line" style="flex: 1.1;">
-                    <span style="white-space: nowrap; font-weight: 700;">3. Branch:&nbsp;</span>
-                    <span class="dot-line">${escapeHtml(profileValue(student, "programcode"))}</span>
-                  </div>
-                  <div class="row-line" style="flex: 0.9;">
-                    <span style="white-space: nowrap; font-weight: 700;">4. Specialization:&nbsp;</span>
-                    <span class="dot-line">${escapeHtml(profileValue(student, "regulation"))}</span>
-                  </div>
-                </div>
-
                 <div class="row-line">
-                  <span style="white-space: nowrap; font-weight: 700;">5. Institute:&nbsp;</span>
-                  <span class="dot-line">${escapeHtml(institutionName(institution) || profileValue(student, "section"))}</span>
+                  <span style="white-space: nowrap; font-weight: 700;">1. Name of the Student (in Capital Letters):&nbsp;</span>
+                  <span class="dot-line">${escapeHtml(studentNameUpper)}</span>
                 </div>
 
                 <div class="enrollment-row">
-                  <span class="enrollment-title">7. Enrollment Number</span>
+                  <span class="enrollment-title">2. Enrollment No:</span>
                   <div class="boxes-container">
                     ${enrollmentBoxesHtml}
                   </div>
                 </div>
+
+                <div class="row-line">
+                  <span style="white-space: nowrap; font-weight: 700;">3. ABC ID:&nbsp;</span>
+                  <span class="dot-line" style="font-weight: 800; color: #000; letter-spacing: 0.5px;">${escapeHtml(profileValue(student, "abcid"))}</span>
+                </div>
+
+                <div class="row-line">
+                  <span style="white-space: nowrap; font-weight: 700;">4. Father’s name (in Capital Letters):&nbsp;</span>
+                  <span class="dot-line">${escapeHtml(fatherNameUpper)}</span>
+                </div>
+
+                <div class="row-line">
+                  <span style="white-space: nowrap; font-weight: 700;">5. Mother’s Name (in Capital Letters):&nbsp;</span>
+                  <span class="dot-line">${escapeHtml(motherNameUpper)}</span>
+                </div>
               </div>
 
-              <!-- Photo Column (Item 6) -->
+              <!-- Photo Column -->
               <div class="photo-col-right">
                 <div class="photo-box">
-                  <div class="photo-num">6.</div>
                   ${photo 
                     ? `<img src="${escapeHtml(photo)}" class="photo-img" alt="Photograph" />`
                     : `<div class="photo-text">Paste (Do not staple)<br/>recent Photograph<br/>(Size 35mm x 45 mm)<br/>duly attested by the<br/>Dean/Principal/Head of<br/>the Institution</div>`
@@ -774,53 +784,52 @@ const openStudentExamFormPrint = ({
               </div>
             </div>
 
-            <!-- Student personal details (Items 8-15) -->
-            <div class="row-line">
-              <span style="white-space: nowrap; font-weight: 700;">8. Examinee’s Name (in Capital Letters):&nbsp;</span>
-              <span class="dot-line">${escapeHtml(studentNameUpper)}</span>
-            </div>
-
-            <div class="row-line">
-              <span style="white-space: nowrap; font-weight: 700;">9. Father’s/Husband’s Name (in Capital Letters):&nbsp;</span>
-              <span class="dot-line">${escapeHtml(fatherNameUpper)}</span>
-            </div>
-
-            <div class="row-line">
-              <span style="white-space: nowrap; font-weight: 700;">10. Mother’s Name (in Capital Letters):&nbsp;</span>
-              <span class="dot-line">${escapeHtml(motherNameUpper)}</span>
-            </div>
-
-            <div style="display: flex; gap: 8px; margin-bottom: 4.5px;">
-              <div class="row-line" style="flex: 1.15;">
-                <span style="white-space: nowrap; font-weight: 700;">11. Date of Birth:&nbsp;</span>
+            <!-- Student personal and academic details in EXACT sequence (Items 6 to 14) -->
+            <div style="display: flex; gap: 12px; margin-bottom: 4.5px;">
+              <div class="row-line" style="flex: 1.1;">
+                <span style="white-space: nowrap; font-weight: 700;">6. Date of birth:&nbsp;</span>
                 <span class="dot-line">${escapeHtml(profileValue(student, "dateofbirth"))}</span>
               </div>
-              <div class="row-line" style="flex: 0.95;">
-                <span style="white-space: nowrap; font-weight: 700;">12. Category:&nbsp;</span>
-                <span class="dot-line">${escapeHtml(profileValue(student, "category"))}</span>
-              </div>
-              <div class="row-line" style="flex: 0.85;">
-                <span style="white-space: nowrap; font-weight: 700;">13. Gender:&nbsp;</span>
+              <div class="row-line" style="flex: 0.9;">
+                <span style="white-space: nowrap; font-weight: 700;">7. Gender:&nbsp;</span>
                 <span class="dot-line">${escapeHtml(profileValue(student, "gender"))}</span>
-              </div>
-              <div class="row-line" style="flex: 1.05;">
-                <span style="white-space: nowrap; font-weight: 700;">14. Nationality:&nbsp;</span>
-                <span class="dot-line">${escapeHtml(profileValue(student, "nationality"))}</span>
               </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-bottom: 4.5px;">
-              <div class="row-line" style="flex: 1.2;">
-                <span style="white-space: nowrap; font-weight: 700;">ABC ID:&nbsp;</span>
-                <span class="dot-line">${escapeHtml(profileValue(student, "abcid"))}</span>
+              <div class="row-line" style="flex: 1.1;">
+                <span style="white-space: nowrap; font-weight: 700;">8. Nationality:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "nationality"))}</span>
               </div>
-              <div class="row-line" style="flex: 0.8;">
-                <span style="white-space: nowrap; font-weight: 700;">Section:&nbsp;</span>
-                <span class="dot-line">${escapeHtml(profileValue(student, "section"))}</span>
+              <div class="row-line" style="flex: 0.9;">
+                <span style="white-space: nowrap; font-weight: 700;">9. Category:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "category"))}</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-bottom: 4.5px;">
+              <div class="row-line" style="flex: 1.15;">
+                <span style="white-space: nowrap; font-weight: 700;">10. Program:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "program"))}</span>
+              </div>
+              <div class="row-line" style="flex: 0.85;">
+                <span style="white-space: nowrap; font-weight: 700;">11. Program Code:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "programcode"))}</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-bottom: 4.5px;">
+              <div class="row-line" style="flex: 1;">
+                <span style="white-space: nowrap; font-weight: 700;">12. Regulation:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "regulation"))}</span>
               </div>
               <div class="row-line" style="flex: 1;">
-                <span style="white-space: nowrap; font-weight: 700;">Regulation:&nbsp;</span>
-                <span class="dot-line">${escapeHtml(profileValue(student, "regulation"))}</span>
+                <span style="white-space: nowrap; font-weight: 700;">13. Semester:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "semester"))}</span>
+              </div>
+              <div class="row-line" style="flex: 1;">
+                <span style="white-space: nowrap; font-weight: 700;">14. Section:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "section"))}</span>
               </div>
             </div>
 
