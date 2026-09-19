@@ -389,7 +389,14 @@ export default function EvaluatorRegistrationPublicPage() {
       <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 3, borderTop: "6px solid #1e3c72" }}>
         <Box display="flex" alignItems="center" gap={2} mb={2}>
           {institution.logo ? (
-            <img src={institution.logo} alt="Logo" style={{ height: 60, maxWidth: 120, objectFit: "contain" }} />
+            <img
+              src={institution.logo}
+              alt=""
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+              style={{ height: 60, maxWidth: 180, objectFit: "contain" }}
+            />
           ) : (
             <HowToRegIcon sx={{ fontSize: 50, color: "#1e3c72" }} />
           )}
@@ -405,20 +412,9 @@ export default function EvaluatorRegistrationPublicPage() {
 
         <Divider sx={{ my: 1.5 }} />
 
-        <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
-          <Typography variant="h4" fontWeight="bold">
-            {formConfig?.title || "Registration Form"}
-          </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => window.history.back()}
-            sx={{ textTransform: "none", borderColor: "#d32f2f", color: "#d32f2f" }}
-          >
-            Close (https://onmark.co.in/people_uni/Welcome)
-          </Button>
-        </Box>
+        <Typography variant="h4" fontWeight="bold" sx={{ mt: 1 }}>
+          {formConfig?.title || "Registration Form"}
+        </Typography>
 
         {formConfig?.description && (
           <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
@@ -788,27 +784,16 @@ export default function EvaluatorRegistrationPublicPage() {
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
             By clicking submit, I certify that the information entered above is correct and genuine.
           </Typography>
-          <Box display="flex" justifyContent="center" alignItems="center" gap={2} flexWrap="wrap">
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              size="large"
-              disabled={submitting}
-              sx={{ px: 5, py: 1.2, fontSize: "16px", fontWeight: "bold", background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)" }}
-            >
-              {submitting ? <CircularProgress size={24} color="inherit" /> : "Submit"}
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              size="large"
-              onClick={() => window.history.back()}
-              sx={{ textTransform: "none", borderColor: "#d32f2f", color: "#d32f2f" }}
-            >
-              Close (https://onmark.co.in/people_uni/Welcome)
-            </Button>
-          </Box>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            size="large"
+            disabled={submitting}
+            sx={{ px: 6, py: 1.5, fontSize: "16px", fontWeight: "bold", background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)" }}
+          >
+            {submitting ? <CircularProgress size={26} color="inherit" /> : "Submit Registration"}
+          </Button>
         </Paper>
       </form>
     </Container>
