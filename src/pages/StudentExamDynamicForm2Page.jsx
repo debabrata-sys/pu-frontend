@@ -144,131 +144,830 @@ const openStudentExamFormPrint = ({
   courses = [],
   exam = {},
   fees = [],
-  title = "Student Exam Form"
+  title = "Examination Form (Semester Pattern)"
 }) => {
   const logo = institutionLogo(institution);
   const photo = studentPhoto(student);
-  const today = formatDate(new Date());
-  const profileHtml = profileFields
-    .map(
-      ([label, field]) => `
-    <div class="profile-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(profileValue(student, field) || "NA")}</strong></div>
-  `
-    )
+
+  // Examination term and academic session
+  const acadYear = String(exam.academicyear || student.academicyear || "").trim();
+  let sessionYear1 = "__";
+  let sessionYear2 = "__";
+  if (acadYear) {
+    const parts = acadYear.split(/[-/]/);
+    if (parts.length >= 2) {
+      sessionYear1 = parts[0].slice(-2);
+      sessionYear2 = parts[1].slice(-2);
+    }
+  }
+
+  // Month & Year
+  let examMonth = "";
+  let examYear = "";
+  if (exam.examdate) {
+    const d = new Date(exam.examdate);
+    if (!isNaN(d.getTime())) {
+      examMonth = d.toLocaleString("en-US", { month: "long" });
+      examYear = String(d.getFullYear());
+    }
+  }
+  if (!examYear) {
+    const d = new Date();
+    examMonth = d.toLocaleString("en-US", { month: "long" });
+    examYear = String(d.getFullYear());
+  }
+
+  // Examinee Status
+  const examTypeStr = String(exam.examtype || student.examtype || "").toLowerCase();
+  const isRepeat = examTypeStr.includes("repeat") || examTypeStr.includes("ex") || examTypeStr.includes("backlog") || examTypeStr.includes("supplementary");
+  const isRegular = !isRepeat;
+
+  // Enrollment boxes (e.g. PU-1234567890)
+  const regNoStr = String(profileValue(student, "regno") || "").trim().toUpperCase();
+  let enrollmentChars = [];
+  if (regNoStr) {
+    enrollmentChars = regNoStr.split("");
+  }
+  while (enrollmentChars.length < 14) {
+    enrollmentChars.push("");
+  }
+  const enrollmentBoxesHtml = enrollmentChars
+    .map((c) => `<span class="box-digit">${escapeHtml(c)}</span>`)
     .join("");
 
-  const courseHtml = (courses || [])
-    .map(
-      (row, index) => `
-    <tr>
-      <td>${index + 1}</td>
-      <td>${escapeHtml(row.coursecode)}</td>
-      <td>${escapeHtml(row.course)}</td>
-      <td>${escapeHtml(row.subject)}</td>
-      <td>${escapeHtml(row.type || row.examtype)}</td>
-      <td>${escapeHtml(row.semester)}</td>
-      <td>${escapeHtml(row.examdate)}</td>
-      <td>${escapeHtml(row.examslot)}</td>
-    </tr>
-  `
-    )
-    .join("");
+  // Student Address & Contact details
+  const studentAddress = firstValue(student.address, student.correspondenceaddress, student.permanentaddress, "");
+  const studentDistrict = firstValue(student.district, student.city, "");
+  const studentState = firstValue(student.state, "");
+  const studentPincode = firstValue(student.pincode, student.zipcode, "");
+  const studentPhone = firstValue(student.phone, student.mobileno, student.contactno, student.mobile, "");
 
-  const feeHtml = (fees || [])
-    .map(
-      (row, index) => `
-    <tr>
-      <td>${index + 1}</td>
-      <td>${escapeHtml(row.feegroup)}</td>
-      <td>${escapeHtml(row.feeitem)}</td>
-      <td>${escapeHtml(formatDate(row.classdate))}</td>
-      <td class="num">${feeNumber(row.amount)}</td>
-      <td class="num">${feeNumber(row.paid)}</td>
-      <td class="num">${feeNumber(row.concession)}</td>
-      <td class="num">${feeNumber(row.balance)}</td>
-      <td>${escapeHtml(formatDate(row.paiddate))}</td>
-      <td>${escapeHtml(row.status)}</td>
-    </tr>
-  `
-    )
-    .join("");
+  // Qualifying Exam details
+  const qualExamName = firstValue(student.qualifyingexam, student.previousdegree, student.lastqualifyingexam, "");
+  const qualPassingYear = firstValue(student.yearofpassing, student.passingyear, "");
+  const qualEnrollmentNo = firstValue(student.qualifyingenrollmentno, student.previousenrollmentno, "");
+  const qualResult = firstValue(student.qualifyingresult, student.previousresult, "");
+  const qualCollege = firstValue(student.qualifyingcollege, student.previouscollege, "");
+  const qualUniversity = firstValue(student.qualifyinguniversity, student.previousuniversity, "");
+
+  // Split courses into Theory and Practical
+  const isPractical = (c = {}) => {
+    const t = String(c.type || c.examtype || c.subjecttype || "").toLowerCase();
+    const n = String(c.course || c.subject || "").toLowerCase();
+    return t.includes("prac") || t.includes("lab") || t.includes("viva") || t.includes("clin") || t.includes("proj") || n.includes("practical") || n.includes("lab");
+  };
+
+  const theoryList = [];
+  const practicalList = [];
+  (courses || []).forEach((c) => {
+    if (isPractical(c)) practicalList.push(c);
+    else theoryList.push(c);
+  });
+
+  const totalPaperRows = Math.max(10, Math.max(theoryList.length, practicalList.length));
+  const papersRowsHtml = Array.from({ length: totalPaperRows }, (_, idx) => {
+    const t = theoryList[idx] || {};
+    const p = practicalList[idx] || {};
+    return `
+      <tr>
+        <td class="center">${idx + 1}</td>
+        <td>${escapeHtml(t.coursecode || "")}</td>
+        <td>${escapeHtml(t.course || t.subject || "")}</td>
+        <td class="center">${idx + 1}</td>
+        <td>${escapeHtml(p.coursecode || "")}</td>
+        <td>${escapeHtml(p.course || p.subject || "")}</td>
+      </tr>
+    `;
+  }).join("");
+
+  // Fee table rows for Section 20 (Office use)
+  let officeFeeRows = "";
+  if (Array.isArray(fees) && fees.length > 0) {
+    officeFeeRows = fees.map((row, index) => `
+      <tr>
+        <td>${escapeHtml(row.receiptno || row.feegroup || `REC-${index + 1}`)}</td>
+        <td class="center">${escapeHtml(formatDate(row.paiddate || row.classdate) || "")}</td>
+        <td class="right">${feeNumber(row.paid || row.amount)}</td>
+        <td>${escapeHtml(row.verifier || "Account Officer")}</td>
+        <td class="center">Verified</td>
+      </tr>
+    `).join("");
+  } else {
+    officeFeeRows = Array.from({ length: 2 }, () => `
+      <tr>
+        <td style="height: 24px;">&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+    `).join("");
+  }
+
+  const studentNameUpper = String(profileValue(student, "name") || "").toUpperCase();
+  const fatherNameUpper = String(profileValue(student, "fathername") || "").toUpperCase();
+  const motherNameUpper = String(profileValue(student, "mothername") || "").toUpperCase();
 
   const win = window.open("", "_blank", "width=980,height=900");
   if (!win) return;
   win.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>
-    @page { size: A4 portrait; margin: 12mm; }
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 12px; }
-    .toolbar { padding: 10px; background: #f3f4f6; border-bottom: 1px solid #d1d5db; position: sticky; top: 0; z-index: 2; }
-    .toolbar button { margin-right: 8px; padding: 7px 14px; border: 1px solid #111; background: #fff; cursor: pointer; }
-    .page { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 10mm; background: #fff; color: #000; }
-    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
-    .header img { max-height: 58px; max-width: 120px; object-fit: contain; margin-bottom: 4px; }
-    .inst { font-size: 18px; font-weight: 800; }
-    .title { text-align: center; font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 10px 0; }
-    .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
-    .meta div, .profile-item { border: 1px solid #111; padding: 5px; min-height: 30px; }
-    .meta span, .profile-item span { display: block; font-size: 10px; color: #111; text-transform: uppercase; }
-    .meta strong, .profile-item strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
-    .student { display: grid; grid-template-columns: 1fr 96px; gap: 10px; align-items: start; }
-    .profile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-    .photo { width: 96px; height: 118px; border: 1px solid #111; object-fit: cover; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #111; padding: 5px; text-align: left; vertical-align: top; }
-    .num { text-align: right; }
-    th { font-weight: 800; background: #f5f5f5; }
-    thead { display: table-header-group; }
-    tr { page-break-inside: avoid; }
-    .section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; text-align: center; margin: 12px 0 5px; }
-    .declaration { margin-top: 10px; font-size: 11px; line-height: 1.35; }
-    .declaration ol { margin: 4px 0 0 18px; padding: 0; }
-    .declaration li { margin-bottom: 3px; }
-    .student-sign { text-align: right; margin-top: 16px; }
-    .office { margin-top: 8px; font-size: 11px; line-height: 1.35; }
-    .footer-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 26px; align-items: end; }
-    .hoi-sign { text-align: right; min-height: 54px; }
-    .place-date div { margin-bottom: 10px; }
-    @media print { .toolbar { display: none; } .page { width: auto; min-height: auto; margin: 0; padding: 0; } }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e2e8f0;
+      color: #000;
+      font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+      font-size: 11.5px;
+      line-height: 1.35;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .toolbar button {
+      padding: 7px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+    }
+    .toolbar button.primary {
+      background: #2563eb;
+      color: #fff;
+      border-color: #1d4ed8;
+    }
+    .page-container {
+      width: 210mm;
+      margin: 16px auto;
+    }
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      padding: 6mm 7mm;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      box-sizing: border-box;
+      position: relative;
+    }
+    .sheet-border {
+      border: 2px solid #000;
+      padding: 6mm 7mm;
+      min-height: calc(297mm - 12mm);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none !important; }
+      .page-container { width: 100%; margin: 0; }
+      .sheet {
+        width: 100%;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        page-break-after: always;
+      }
+      .sheet-border {
+        border: 2px solid #000;
+        padding: 6mm 7mm;
+        min-height: 279mm;
+      }
+    }
+    /* Header layout */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+    .header-table td {
+      border: none;
+      padding: 0;
+      vertical-align: middle;
+    }
+    .logo-td {
+      width: 88px;
+      text-align: left;
+    }
+    .logo-img {
+      max-width: 82px;
+      max-height: 70px;
+      object-fit: contain;
+    }
+    .inst-center {
+      text-align: center;
+      padding: 0 6px;
+    }
+    .inst-name {
+      font-size: 18px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 2px;
+    }
+    .inst-sub {
+      font-size: 10px;
+      color: #111;
+      margin-bottom: 3px;
+    }
+    .form-heading {
+      font-size: 13.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .centre-td {
+      width: 135px;
+      text-align: right;
+    }
+    .centre-box {
+      display: inline-block;
+      border: 1px solid #111;
+      border-radius: 8px;
+      width: 130px;
+      min-height: 52px;
+      padding: 5px;
+      text-align: center;
+      font-size: 9.5px;
+      line-height: 1.25;
+      color: #166534;
+      background: #fff;
+    }
+    .centre-box strong {
+      display: block;
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0 8px 0;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .check-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border: 1px solid #000;
+      vertical-align: middle;
+      margin-left: 2px;
+      margin-right: 8px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    /* Fields layout with photo on right */
+    .student-top-layout {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+      margin-bottom: 4px;
+    }
+    .student-fields-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .photo-col-right {
+      width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .photo-box {
+      width: 115px;
+      min-height: 145px;
+      border: 1px solid #000;
+      position: relative;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: #fff;
+    }
+    .photo-num {
+      position: absolute;
+      top: 2px;
+      left: 3px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .photo-img {
+      width: 102px;
+      height: 128px;
+      object-fit: cover;
+      border: 1px solid #999;
+    }
+    .photo-text {
+      font-size: 8.5px;
+      line-height: 1.2;
+      color: #333;
+      padding-top: 10px;
+    }
+
+    /* Dotted line fills */
+    .row-line {
+      display: flex;
+      align-items: baseline;
+      font-size: 11px;
+      margin-bottom: 4.5px;
+      width: 100%;
+    }
+    .dot-line {
+      flex: 1;
+      border-bottom: 1px dotted #000;
+      min-height: 14px;
+      font-weight: 700;
+      padding: 0 4px;
+      overflow-wrap: anywhere;
+    }
+    .dot-inline {
+      display: inline-block;
+      border-bottom: 1px dotted #000;
+      min-height: 14px;
+      font-weight: 700;
+      padding: 0 4px;
+      vertical-align: bottom;
+    }
+
+    /* Enrollment box digits */
+    .enrollment-row {
+      display: flex;
+      align-items: center;
+      margin-top: 3px;
+      font-size: 11px;
+    }
+    .enrollment-title {
+      font-weight: 700;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    .boxes-container {
+      display: inline-flex;
+    }
+    .box-digit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 21px;
+      border: 1px solid #000;
+      margin-right: -1px;
+      font-weight: 800;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      background: #fff;
+    }
+
+    /* Section 16 Qualifying Exam */
+    .sec-qualifying {
+      border: 1px solid #000;
+      margin: 6px 0;
+      padding: 4px 6px;
+    }
+    .sec-qualifying-title {
+      font-weight: 800;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+    .qual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 16px;
+      row-gap: 3px;
+      font-size: 10.5px;
+    }
+
+    /* Section 17 Papers Table */
+    .papers-table-wrapper {
+      margin: 6px 0;
+    }
+    .sec-papers-title {
+      font-weight: 800;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+    table.papers-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    table.papers-table th, table.papers-table td {
+      border: 1px solid #000;
+      padding: 2.5px 4px;
+      vertical-align: middle;
+    }
+    table.papers-table th {
+      font-weight: 800;
+      text-align: center;
+      background: #fafafa;
+    }
+    table.papers-table td.center {
+      text-align: center;
+    }
+
+    /* Section 18 */
+    .sec-18 {
+      margin-top: 4px;
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+    .sec-18-title {
+      font-weight: 800;
+      font-size: 11px;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .sec-18-body {
+      margin-bottom: 12px;
+    }
+    .sign-right {
+      text-align: right;
+      font-weight: 700;
+      padding-top: 14px;
+    }
+
+    /* PAGE 2 STYLES */
+    .sec-title-center {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .sec-title-left {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    ol.declaration-list {
+      margin: 0 0 10px 18px;
+      padding: 0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    ol.declaration-list li {
+      margin-bottom: 7px;
+      text-align: justify;
+    }
+    ol.hoi-list {
+      margin: 0 0 10px 18px;
+      padding: 0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    ol.hoi-list li {
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+    .sign-row-split {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 18px;
+      font-size: 11px;
+    }
+    .place-date-col {
+      line-height: 1.6;
+    }
+    table.office-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      margin: 6px 0 12px 0;
+    }
+    table.office-table th, table.office-table td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    table.office-table th {
+      font-weight: 800;
+      background: #fafafa;
+    }
+    table.office-table th.center, table.office-table td.center {
+      text-align: center;
+    }
+    table.office-table td.right {
+      text-align: right;
+    }
   </style></head><body>
-    <div class="toolbar"><button onclick="window.print()">Print</button><button onclick="window.close()">Close</button></div>
-    <div class="page">
-      <div class="header">${logo ? `<img src="${escapeHtml(logo)}" alt="Logo" />` : ""}<div class="inst">${escapeHtml(institutionName(institution))}</div><div>${escapeHtml(institutionAddress(institution))}</div></div>
-      <div class="title">${escapeHtml(title)}</div>
-      <div class="meta">
-        <div><span>Academic Year</span><strong>${escapeHtml(exam.academicyear || student.academicyear)}</strong></div>
-        <div><span>Exam</span><strong>${escapeHtml(exam.exam || exam.examname || "")}</strong></div>
-        <div><span>Exam Code</span><strong>${escapeHtml(exam.examcode || "")}</strong></div>
-        <div><span>Date</span><strong>${today}</strong></div>
+    <div class="toolbar">
+      <button class="primary" onclick="window.print()">Print Examination Form</button>
+      <button onclick="window.close()">Close</button>
+    </div>
+
+    <div class="page-container">
+      <!-- ================= PAGE 1 ================= -->
+      <div class="sheet">
+        <div class="sheet-border">
+          <div>
+            <!-- Header -->
+            <table class="header-table">
+              <tr>
+                <td class="logo-td">
+                  ${logo ? `<img class="logo-img" src="${escapeHtml(logo)}" alt="Logo" />` : `<div style="width:70px;height:70px;"></div>`}
+                </td>
+                <td class="inst-center">
+                  <div class="inst-name">${escapeHtml(institutionName(institution) || "PEOPLE’S UNIVERSITY, BHOPAL (MP)")}</div>
+                  <div class="inst-sub">(All the information should be filled by the Examinee in English only)</div>
+                  <div class="form-heading">EXAMINATION FORM (SEMESTER PATTERN)</div>
+                </td>
+                <td class="centre-td">
+                  <div class="centre-box">
+                    <strong>Examination Centre</strong>
+                    (to be filled by the University)
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Status & Month/Year -->
+            <div class="status-bar">
+              <div>
+                Examinee Status [√]:&nbsp;&nbsp;
+                Regular <span class="check-box">${isRegular ? "✓" : "&nbsp;"}</span>&nbsp;&nbsp;
+                Repeat/Ex. <span class="check-box">${isRepeat ? "✓" : "&nbsp;"}</span>
+              </div>
+              <div>
+                Month: <span class="dot-inline" style="min-width: 95px; text-align: center;">${escapeHtml(examMonth)}</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                Year: <span class="dot-inline" style="min-width: 65px; text-align: center;">${escapeHtml(examYear)}</span>
+              </div>
+            </div>
+
+            <!-- Student info items 1-5, 7 + Photo box on right (item 6) -->
+            <div class="student-top-layout">
+              <div class="student-fields-left">
+                <div style="display: flex; gap: 12px;">
+                  <div class="row-line" style="flex: 1.1;">
+                    <span style="white-space: nowrap; font-weight: 700;">1. Program:&nbsp;</span>
+                    <span class="dot-line">${escapeHtml(profileValue(student, "program"))}</span>
+                  </div>
+                  <div class="row-line" style="flex: 0.9;">
+                    <span style="white-space: nowrap; font-weight: 700;">2. Semester:&nbsp;</span>
+                    <span class="dot-line">${escapeHtml(profileValue(student, "semester"))}</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                  <div class="row-line" style="flex: 1.1;">
+                    <span style="white-space: nowrap; font-weight: 700;">3. Branch:&nbsp;</span>
+                    <span class="dot-line">${escapeHtml(profileValue(student, "programcode"))}</span>
+                  </div>
+                  <div class="row-line" style="flex: 0.9;">
+                    <span style="white-space: nowrap; font-weight: 700;">4. Specialization:&nbsp;</span>
+                    <span class="dot-line">${escapeHtml(profileValue(student, "regulation"))}</span>
+                  </div>
+                </div>
+
+                <div class="row-line">
+                  <span style="white-space: nowrap; font-weight: 700;">5. Institute:&nbsp;</span>
+                  <span class="dot-line">${escapeHtml(institutionName(institution) || profileValue(student, "section"))}</span>
+                </div>
+
+                <div class="enrollment-row">
+                  <span class="enrollment-title">7. Enrollment Number</span>
+                  <div class="boxes-container">
+                    ${enrollmentBoxesHtml}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Photo Column (Item 6) -->
+              <div class="photo-col-right">
+                <div class="photo-box">
+                  <div class="photo-num">6.</div>
+                  ${photo 
+                    ? `<img src="${escapeHtml(photo)}" class="photo-img" alt="Photograph" />`
+                    : `<div class="photo-text">Paste (Do not staple)<br/>recent Photograph<br/>(Size 35mm x 45 mm)<br/>duly attested by the<br/>Dean/Principal/Head of<br/>the Institution</div>`
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Student personal details (Items 8-15) -->
+            <div class="row-line">
+              <span style="white-space: nowrap; font-weight: 700;">8. Examinee’s Name (in Capital Letters):&nbsp;</span>
+              <span class="dot-line">${escapeHtml(studentNameUpper)}</span>
+            </div>
+
+            <div class="row-line">
+              <span style="white-space: nowrap; font-weight: 700;">9. Father’s/Husband’s Name (in Capital Letters):&nbsp;</span>
+              <span class="dot-line">${escapeHtml(fatherNameUpper)}</span>
+            </div>
+
+            <div class="row-line">
+              <span style="white-space: nowrap; font-weight: 700;">10. Mother’s Name (in Capital Letters):&nbsp;</span>
+              <span class="dot-line">${escapeHtml(motherNameUpper)}</span>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 4.5px;">
+              <div class="row-line" style="flex: 1.15;">
+                <span style="white-space: nowrap; font-weight: 700;">11. Date of Birth:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "dateofbirth"))}</span>
+              </div>
+              <div class="row-line" style="flex: 0.95;">
+                <span style="white-space: nowrap; font-weight: 700;">12. Category:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "category"))}</span>
+              </div>
+              <div class="row-line" style="flex: 0.85;">
+                <span style="white-space: nowrap; font-weight: 700;">13. Gender:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "gender"))}</span>
+              </div>
+              <div class="row-line" style="flex: 1.05;">
+                <span style="white-space: nowrap; font-weight: 700;">14. Nationality:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "nationality"))}</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-bottom: 4.5px;">
+              <div class="row-line" style="flex: 1.2;">
+                <span style="white-space: nowrap; font-weight: 700;">ABC ID:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "abcid"))}</span>
+              </div>
+              <div class="row-line" style="flex: 0.8;">
+                <span style="white-space: nowrap; font-weight: 700;">Section:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "section"))}</span>
+              </div>
+              <div class="row-line" style="flex: 1;">
+                <span style="white-space: nowrap; font-weight: 700;">Regulation:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(profileValue(student, "regulation"))}</span>
+              </div>
+            </div>
+
+            <div class="row-line">
+              <span style="white-space: nowrap; font-weight: 700;">15. Correspondence Address:&nbsp;</span>
+              <span class="dot-line">${escapeHtml(studentAddress || "........................................................................................................................................................")}</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 4px;">
+              <div class="row-line" style="flex: 1;">
+                <span style="white-space: nowrap; font-weight: 700;">District:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(studentDistrict || "")}</span>
+              </div>
+              <div class="row-line" style="flex: 1;">
+                <span style="white-space: nowrap; font-weight: 700;">State:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(studentState || "")}</span>
+              </div>
+              <div class="row-line" style="flex: 0.9;">
+                <span style="white-space: nowrap; font-weight: 700;">Pin Code:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(studentPincode || "")}</span>
+              </div>
+              <div class="row-line" style="flex: 1.1;">
+                <span style="white-space: nowrap; font-weight: 700;">Contact No.:&nbsp;</span>
+                <span class="dot-line">${escapeHtml(studentPhone || "")}</span>
+              </div>
+            </div>
+
+            <!-- 16. Details of Qualifying Exam -->
+            <div class="sec-qualifying">
+              <div class="sec-qualifying-title">16. Details of Qualifying Exam (Attach Attested Photo Copies)</div>
+              <div class="qual-grid">
+                <div>(a) Name of Exam:&nbsp;<span class="dot-inline" style="min-width: 160px;">${escapeHtml(qualExamName)}</span></div>
+                <div>(b) Year of passing:&nbsp;<span class="dot-inline" style="min-width: 140px;">${escapeHtml(qualPassingYear)}</span></div>
+                <div>(c) Enrollment No:&nbsp;<span class="dot-inline" style="min-width: 160px;">${escapeHtml(qualEnrollmentNo)}</span></div>
+                <div>(d) Result:&nbsp;<span class="dot-inline" style="min-width: 140px;">${escapeHtml(qualResult)}</span></div>
+                <div>(e) College/Institute:&nbsp;<span class="dot-inline" style="min-width: 160px;">${escapeHtml(qualCollege)}</span></div>
+                <div>(f) Name of University:&nbsp;<span class="dot-inline" style="min-width: 140px;">${escapeHtml(qualUniversity)}</span></div>
+              </div>
+            </div>
+
+            <!-- 17. Papers Table -->
+            <div class="papers-table-wrapper">
+              <div class="sec-papers-title">17. I will be appearing for the following Papers:-</div>
+              <table class="papers-table">
+                <thead>
+                  <tr>
+                    <th colspan="3">Theory</th>
+                    <th colspan="3">Practical</th>
+                  </tr>
+                  <tr>
+                    <th style="width: 5%;">S.No.</th>
+                    <th style="width: 14%;">Paper Code</th>
+                    <th style="width: 31%;">Paper Name</th>
+                    <th style="width: 5%;">S.No.</th>
+                    <th style="width: 14%;">Paper Code</th>
+                    <th style="width: 31%;">Paper Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${papersRowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 18. Certificate by Coordinator/HOD -->
+            <div class="sec-18">
+              <div class="sec-18-title">18. CERTIFICATE BY THE RESPECTIVE CO-ORDINATOR/HOD/GUIDE</div>
+              <div class="sec-18-body">
+                This is to certify that <u>&nbsp;<b>${escapeHtml(studentNameUpper || "................................................................")}</b>&nbsp;</u> fulfils the eligibility to appear in University examination for the above mentioned program/papers.
+              </div>
+              <div class="sign-right">
+                Signature of Coordinator/HOD/Guide with full Name
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="student">
-        <div class="profile">${profileHtml}</div>
-        ${photo ? `<img class="photo" src="${escapeHtml(photo)}" alt="Student photo" />` : `<div class="photo"></div>`}
-      </div>
-      <table>
-        <thead><tr><th>Sr</th><th>Course Code</th><th>Course</th><th>Subject</th><th>Type</th><th>Semester</th><th>Exam Date</th><th>Slot</th></tr></thead>
-        <tbody>${courseHtml || `<tr><td colspan="8" style="text-align:center">No subjects found</td></tr>`}</tbody>
-      </table>
-      <div class="section-title">Exam Fee Details</div>
-      <table>
-        <thead><tr><th>Sr</th><th>Fee Group</th><th>Fee Item</th><th>Date</th><th>Amount</th><th>Paid</th><th>Concession</th><th>Balance</th><th>Paid Date</th><th>Status</th></tr></thead>
-        <tbody>${feeHtml || `<tr><td colspan="10" style="text-align:center">No exam fee ledger rows found</td></tr>`}</tbody>
-      </table>
-      <div class="declaration">
-        <div class="section-title">Declaration by the Examinee</div>
-        <ol>
-          <li>I have read and understood the ordinance, rules and instructions for the examination and undertake to abide by them.</li>
-          <li>I hereby declare that I have fulfilled the required attendance and eligibility criteria prescribed for appearing in this examination.</li>
-          <li>I have not been debarred, rusticated, detained or declared not eligible by the Institution/University for this examination.</li>
-          <li>The information furnished in this form is correct to the best of my knowledge and belief.</li>
-        </ol>
-        <div class="student-sign">Signature of Examinee / Student</div>
-      </div>
-      <div class="office">
-        <div class="section-title">Certificate from Institution / Department</div>
-        <p>Certified that the student has fulfilled attendance, internal assessment and academic prerequisites prescribed under examination ordinances.</p>
-        <div class="footer-sign">
-          <div class="place-date"><div>Place: _________________</div><div>Date: __________________</div></div>
-          <div class="hoi-sign">Signature &amp; Seal of Head of Institution / Department</div>
+
+      <!-- ================= PAGE 2 ================= -->
+      <div class="sheet">
+        <div class="sheet-border">
+          <div>
+            <!-- 19. Declaration by the examinee -->
+            <div class="sec-title-center">19. DECLARATION BY THE EXAMINEE</div>
+            <ol class="declaration-list">
+              <li>I am aware that, I have to fulfill criteria of attendance as prescribed by the University, failing which I shall be held &ldquo;Not Eligible&rdquo; and will not be allowed to appear for examination.</li>
+              <li>I hereby declare that I have gone through the syllabus as prescribed and adopted by the University and relevant rules off the Head of Passing which are applicable for the examination for which I am appearing and I accept the same without any challenge (wherever applicable).</li>
+              <li>I shall be responsible if my application form is rejected for any errors, wrong or incomplete entries made by me in the examination form.</li>
+              <li>I am not defying the criteria of the admission order.</li>
+              <li>I am not admitted to the course after the cut-off date declared by the University for Grant of terms.</li>
+            </ol>
+
+            <div class="sign-row-split" style="margin-top: 24px;">
+              <div class="place-date-col">
+                <div>Place: ________________________</div>
+                <div style="margin-top: 8px;">Date: &nbsp;________________________</div>
+              </div>
+              <div style="text-align: right; font-weight: 700;">
+                Signature of Examinee in running hand
+              </div>
+            </div>
+
+            <!-- 20. Office use -->
+            <div class="sec-title-center" style="margin-top: 30px;">20. FOR THE USE OF INSTITUTION OFFICE</div>
+            <table class="office-table">
+              <thead>
+                <tr>
+                  <th colspan="5" class="center" style="background: #f1f5f9;">Attachments</th>
+                </tr>
+                <tr>
+                  <th style="width: 22%;">Fee Receipt No.</th>
+                  <th style="width: 16%;" class="center">Date</th>
+                  <th style="width: 18%;" class="right">Amount (Rs.)</th>
+                  <th style="width: 26%;">Name of Verifying Officer</th>
+                  <th style="width: 18%;" class="center">Signature</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${officeFeeRows}
+              </tbody>
+            </table>
+
+            <!-- 21. Certificate by Head of Institution -->
+            <div class="sec-title-left" style="margin-top: 30px;">21. CERTIFICATE BY THE HEAD OF INSTITUTION</div>
+            <div style="margin: 6px 0 6px 0; font-weight: 700; font-size: 11px;">I certify :</div>
+            <ol class="hoi-list">
+              <li>
+                That Shri/Smt./Kum. <u>&nbsp;<b>${escapeHtml(studentNameUpper || "........................................................")}</b>&nbsp;</u> is a bonafide student of this college, admitted to the <u>&nbsp;<b>${escapeHtml(profileValue(student, "program") || "....................................")}</b>&nbsp;</u> Program in the Session 20<u>${sessionYear1}</u>-<u>${sessionYear2}</u>. He/she is not admitted to the course after the cut-off date for grant of terms.
+              </li>
+              <li>
+                That his / her attendance and eligibility to appear in University examination is as per University rules / concerned ordinance/governing council (or body).
+              </li>
+              <li>
+                That the information furnished by the said Examinee is verified from his/her documents and that the Examinee is Eligible to appear for University Examination.
+              </li>
+            </ol>
+
+            <div class="sign-row-split" style="margin-top: 40px;">
+              <div class="place-date-col">
+                <div>Place: ________________________</div>
+                <div style="margin-top: 8px;">Date: &nbsp;________________________</div>
+              </div>
+              <div style="text-align: right; font-weight: 700; padding-top: 20px;">
+                Signature &amp; Seal of the HOI
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
