@@ -54,6 +54,7 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import PostAddIcon from "@mui/icons-material/PostAdd";
+import EditIcon from "@mui/icons-material/Edit";
 
 export default function EvaluatorRegistrationAdminPage() {
   const colid = global1.colid || 1;
@@ -120,6 +121,29 @@ export default function EvaluatorRegistrationAdminPage() {
   const [actionProcessing, setActionProcessing] = useState(false);
   const [actionResult, setActionResult] = useState(null);
 
+  // Edit Submission Dialog State
+  const [editSubmissionDialogOpen, setEditSubmissionDialogOpen] = useState(false);
+  const [editingSubmission, setEditingSubmission] = useState(null);
+  const [editFullname, setEditFullname] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editMobile, setEditMobile] = useState("");
+  const [editRole, setEditRole] = useState("Faculty");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editDesignation, setEditDesignation] = useState("");
+  const [editInstitution, setEditInstitution] = useState("");
+  const [editStatus, setEditStatus] = useState("Pending");
+  const [editAdminRemarks, setEditAdminRemarks] = useState("");
+  const [editBankDetails, setEditBankDetails] = useState({
+    bankname: "",
+    branchname: "",
+    accountholdername: "",
+    accountnumber: "",
+    ifsccode: "",
+    pancardnumber: ""
+  });
+  const [editFieldValues, setEditFieldValues] = useState({});
+  const [updatingSubmission, setUpdatingSubmission] = useState(false);
+
   useEffect(() => {
     loadCatalogs();
     loadForms();
@@ -173,7 +197,7 @@ export default function EvaluatorRegistrationAdminPage() {
       const res = await ep1.get("/api/v2/evaluator-registration/submissions", { params });
       if (res.data?.status === "Success") {
         setSubmissions(res.data.data || []);
-        if (res.data.stats) setStats(res.data.stats);
+        if (res.data.stats || res.data.summary) setStats(res.data.stats || res.data.summary);
       }
     } catch (err) {
       setErrorMsg("Failed to load applicant submissions");
@@ -435,6 +459,97 @@ export default function EvaluatorRegistrationAdminPage() {
       alert(err.response?.data?.message || "Error processing applicant action");
     } finally {
       setActionProcessing(false);
+    }
+  };
+
+  const openEditSubmissionDialog = (sub) => {
+    setEditingSubmission(sub);
+    setEditFullname(sub.applicantName || sub.fullname || sub.fieldValues?.name || "");
+    setEditEmail(sub.applicantEmail || sub.email || sub.fieldValues?.email || "");
+    setEditMobile(sub.applicantPhone || sub.mobile || sub.fieldValues?.phone || "");
+    setEditRole(sub.applicantRole || sub.role || "Faculty");
+    setEditDepartment(
+      sub.fieldValues?.department ||
+      sub.fieldValues?.faculty_type ||
+      sub.fieldValues?.faculty ||
+      sub.department ||
+      ""
+    );
+    setEditDesignation(
+      sub.fieldValues?.current_designation ||
+      sub.fieldValues?.designation ||
+      sub.designation ||
+      ""
+    );
+    setEditInstitution(
+      sub.fieldValues?.current_institution ||
+      sub.fieldValues?.institution ||
+      sub.institution ||
+      ""
+    );
+    setEditStatus(sub.status || "Pending");
+    setEditAdminRemarks(sub.adminremarks || "");
+    setEditFieldValues(sub.fieldValues || {});
+    setEditBankDetails({
+      bankname: sub.bankDetails?.bankname || "",
+      branchname: sub.bankDetails?.branchname || "",
+      accountholdername: sub.bankDetails?.accountholdername || sub.fullname || "",
+      accountnumber: sub.bankDetails?.accountnumber || "",
+      ifsccode: sub.bankDetails?.ifsccode || "",
+      pancardnumber: sub.bankDetails?.pancardnumber || ""
+    });
+    setEditSubmissionDialogOpen(true);
+  };
+
+  const handleSaveSubmissionEdit = async () => {
+    if (!editFullname.trim() || !editEmail.trim()) {
+      alert("Name and email are required");
+      return;
+    }
+    setUpdatingSubmission(true);
+    try {
+      const payload = {
+        id: editingSubmission._id,
+        submissionId: editingSubmission._id,
+        colid,
+        fullname: editFullname.trim(),
+        email: editEmail.trim(),
+        mobile: editMobile.trim(),
+        role: editRole.trim(),
+        department: editDepartment.trim(),
+        designation: editDesignation.trim(),
+        institution: editInstitution.trim(),
+        status: editStatus,
+        adminremarks: editAdminRemarks,
+        bankDetails: editBankDetails,
+        fieldValues: {
+          ...editFieldValues,
+          name: editFullname.trim(),
+          email: editEmail.trim(),
+          phone: editMobile.trim(),
+          department: editDepartment.trim(),
+          current_designation: editDesignation.trim(),
+          current_institution: editInstitution.trim()
+        },
+        customFields: {
+          ...(editingSubmission.customFields || {}),
+          department: editDepartment.trim()
+        },
+        user: adminUser
+      };
+
+      const res = await ep1.post("/api/v2/evaluator-registration/submissions-update", payload);
+      if (res.data?.status === "Success") {
+        setSuccessMsg(res.data.message || "Application details updated successfully");
+        setEditSubmissionDialogOpen(false);
+        loadSubmissions();
+      } else {
+        alert(res.data?.message || "Failed to update submission");
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Error updating submission");
+    } finally {
+      setUpdatingSubmission(false);
     }
   };
 
@@ -805,36 +920,54 @@ export default function EvaluatorRegistrationAdminPage() {
                           </IconButton>
                         </Tooltip>
 
-                        {sub.status === "Pending" && (
-                          <>
-                            <Tooltip title="Approve & Create Login">
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => openActionDialog(sub, "Approve")}
-                              >
-                                <CheckCircleIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Put on Hold">
-                              <IconButton
-                                size="small"
-                                color="warning"
-                                onClick={() => openActionDialog(sub, "Hold")}
-                              >
-                                <PauseCircleFilledIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Reject">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => openActionDialog(sub, "Reject")}
-                              >
-                                <CancelIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </>
+                        {/* Edit Button: Always available */}
+                        <Tooltip title="Edit Applicant / Account Details">
+                          <IconButton
+                            size="small"
+                            color="info"
+                            onClick={() => openEditSubmissionDialog(sub)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
+                        {/* Approve: Available when not already Approved */}
+                        {sub.status !== "Approved" && (
+                          <Tooltip title={sub.status === "Rejected" ? "Re-Approve & Create Login" : "Approve & Create Login"}>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => openActionDialog(sub, "Approve")}
+                            >
+                              <CheckCircleIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Put on Hold: Available when not already on Hold */}
+                        {sub.status !== "Hold" && (
+                          <Tooltip title="Put on Hold">
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              onClick={() => openActionDialog(sub, "Hold")}
+                            >
+                              <PauseCircleFilledIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Reject: Available when not already Rejected */}
+                        {sub.status !== "Rejected" && (
+                          <Tooltip title={sub.status === "Approved" ? "Reject / Revoke Access" : "Reject"}>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => openActionDialog(sub, "Reject")}
+                            >
+                              <CancelIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1365,41 +1498,58 @@ export default function EvaluatorRegistrationAdminPage() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5" }}>
+        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5", gap: 1 }}>
           <Button onClick={() => setDetailModalOpen(false)}>Close</Button>
-          {selectedSubmission?.status === "Pending" && (
-            <>
-              <Button
-                variant="outlined"
-                color="warning"
-                onClick={() => {
-                  setDetailModalOpen(false);
-                  openActionDialog(selectedSubmission, "Hold");
-                }}
-              >
-                Put On Hold
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => {
-                  setDetailModalOpen(false);
-                  openActionDialog(selectedSubmission, "Reject");
-                }}
-              >
-                Reject Application
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                onClick={() => {
-                  setDetailModalOpen(false);
-                  openActionDialog(selectedSubmission, "Approve");
-                }}
-              >
-                Approve & Create Account
-              </Button>
-            </>
+
+          <Button
+            variant="outlined"
+            color="info"
+            startIcon={<EditIcon />}
+            onClick={() => {
+              setDetailModalOpen(false);
+              openEditSubmissionDialog(selectedSubmission);
+            }}
+          >
+            Edit Details
+          </Button>
+
+          {selectedSubmission?.status !== "Hold" && (
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={() => {
+                setDetailModalOpen(false);
+                openActionDialog(selectedSubmission, "Hold");
+              }}
+            >
+              Put On Hold
+            </Button>
+          )}
+
+          {selectedSubmission?.status !== "Rejected" && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                setDetailModalOpen(false);
+                openActionDialog(selectedSubmission, "Reject");
+              }}
+            >
+              {selectedSubmission?.status === "Approved" ? "Reject / Revoke" : "Reject Application"}
+            </Button>
+          )}
+
+          {selectedSubmission?.status !== "Approved" && (
+            <Button
+              variant="contained"
+              color="success"
+              onClick={() => {
+                setDetailModalOpen(false);
+                openActionDialog(selectedSubmission, "Approve");
+              }}
+            >
+              {selectedSubmission?.status === "Rejected" ? "Re-Approve & Create Account" : "Approve & Create Account"}
+            </Button>
           )}
         </DialogActions>
       </Dialog>
@@ -1494,6 +1644,228 @@ export default function EvaluatorRegistrationAdminPage() {
               {actionProcessing ? <CircularProgress size={22} color="inherit" /> : `Confirm ${actionType}`}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* DIALOG: EDIT APPLICANT / SUBMISSION DETAILS */}
+      {/* ========================================================================= */}
+      <Dialog open={editSubmissionDialogOpen} onClose={() => setEditSubmissionDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: "#1976d2", color: "#fff", fontWeight: "bold" }}>
+          Edit Application Details: {editFullname}
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, mt: 1 }}>
+          <Box sx={{ mt: 1 }}>
+            {/* Primary Details */}
+            <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+              Primary Account Details:
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Applicant Full Name"
+                  value={editFullname}
+                  onChange={(e) => setEditFullname(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Email Address"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Mobile Number"
+                  value={editMobile}
+                  onChange={(e) => setEditMobile(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Role"
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Application Status</InputLabel>
+                  <Select
+                    value={editStatus}
+                    label="Application Status"
+                    onChange={(e) => setEditStatus(e.target.value)}
+                  >
+                    <MenuItem value="Pending">Pending</MenuItem>
+                    <MenuItem value="Approved">Approved</MenuItem>
+                    <MenuItem value="Hold">On Hold</MenuItem>
+                    <MenuItem value="Rejected">Rejected</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+
+            {/* Academic & Professional Details */}
+            <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+              Academic & Institutional Info:
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Department / Faculty Type"
+                  value={editDepartment}
+                  onChange={(e) => setEditDepartment(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Current Designation"
+                  value={editDesignation}
+                  onChange={(e) => setEditDesignation(e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Current Institution"
+                  value={editInstitution}
+                  onChange={(e) => setEditInstitution(e.target.value)}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Dynamic Field Values */}
+            {editFieldValues && Object.keys(editFieldValues).length > 0 && (
+              <>
+                <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+                  Dynamic Form Field Values:
+                </Typography>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  {Object.entries(editFieldValues)
+                    .filter(([k]) => !["name", "email", "phone", "confirm_email", "confirm_phone"].includes(k))
+                    .map(([key, val]) => (
+                      <Grid item xs={12} sm={6} key={key}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={key.replace(/_/g, " ").toUpperCase()}
+                          value={val !== null && val !== undefined ? String(val) : ""}
+                          onChange={(e) =>
+                            setEditFieldValues({
+                              ...editFieldValues,
+                              [key]: e.target.value
+                            })
+                          }
+                        />
+                      </Grid>
+                    ))}
+                </Grid>
+              </>
+            )}
+
+            {/* Bank Details */}
+            <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+              Bank & Payment Information:
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Bank Name"
+                  value={editBankDetails.bankname || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, bankname: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Branch Name"
+                  value={editBankDetails.branchname || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, branchname: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Account Holder Name"
+                  value={editBankDetails.accountholdername || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, accountholdername: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Account Number"
+                  value={editBankDetails.accountnumber || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, accountnumber: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="IFSC Code"
+                  value={editBankDetails.ifsccode || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, ifsccode: e.target.value.toUpperCase() })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="PAN Card Number"
+                  value={editBankDetails.pancardnumber || ""}
+                  onChange={(e) => setEditBankDetails({ ...editBankDetails, pancardnumber: e.target.value.toUpperCase() })}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Admin Remarks */}
+            <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+              Admin Remarks & Notes:
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              rows={2}
+              label="Admin Remarks"
+              value={editAdminRemarks}
+              onChange={(e) => setEditAdminRemarks(e.target.value)}
+              placeholder="Enter notes or justification..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5" }}>
+          <Button onClick={() => setEditSubmissionDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveSubmissionEdit}
+            disabled={updatingSubmission}
+          >
+            {updatingSubmission ? <CircularProgress size={22} color="inherit" /> : "Save Changes"}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
