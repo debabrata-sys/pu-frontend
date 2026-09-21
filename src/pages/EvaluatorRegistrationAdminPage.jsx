@@ -415,10 +415,12 @@ export default function EvaluatorRegistrationAdminPage() {
     setActionProcessing(true);
     try {
       const res = await ep1.post("/api/v2/evaluator-registration/process-action", {
+        id: selectedSubmission._id,
         submissionId: selectedSubmission._id,
         colid,
         action: actionType,
         remarks: actionRemarks,
+        user: adminUser,
         reviewedby: adminUser
       });
 
@@ -778,13 +780,13 @@ export default function EvaluatorRegistrationAdminPage() {
                   return (
                     <TableRow key={sub._id} hover>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: "12px" }}>
-                        {sub.applicationNumber || sub._id.slice(-6)}
+                        {sub.applicationNumber || String(sub._id || "").slice(-6)}
                       </TableCell>
-                      <TableCell><strong>{sub.applicantName}</strong></TableCell>
-                      <TableCell>{sub.applicantEmail}</TableCell>
-                      <TableCell>{sub.applicantPhone}</TableCell>
-                      <TableCell>{sub.applicantRole || "Evaluator"}</TableCell>
-                      <TableCell>{sub.formTitle || "Registration"}</TableCell>
+                      <TableCell><strong>{sub.applicantName || sub.fullname || sub.fieldValues?.name || "Candidate"}</strong></TableCell>
+                      <TableCell>{sub.applicantEmail || sub.email || sub.fieldValues?.email || "-"}</TableCell>
+                      <TableCell>{sub.applicantPhone || sub.mobile || sub.fieldValues?.phone || "-"}</TableCell>
+                      <TableCell>{sub.applicantRole || sub.role || "Evaluator"}</TableCell>
+                      <TableCell>{sub.formTitle || sub.formtitle || "Registration"}</TableCell>
                       <TableCell>{new Date(sub.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Chip label={sub.status} color={statusColor} size="small" />
@@ -1189,7 +1191,7 @@ export default function EvaluatorRegistrationAdminPage() {
       {/* ========================================================================= */}
       <Dialog open={detailModalOpen} onClose={() => setDetailModalOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ bgcolor: "#1e3c72", color: "#fff", fontWeight: "bold" }}>
-          Candidate Application Details: {selectedSubmission?.applicantName}
+          Candidate Application Details: {selectedSubmission?.applicantName || selectedSubmission?.fullname || selectedSubmission?.fieldValues?.name || ""}
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedSubmission && (
@@ -1425,7 +1427,7 @@ export default function EvaluatorRegistrationAdminPage() {
                     Generated Account Credentials:
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>Username:</strong> {actionResult.credentials.username}
+                    <strong>Username:</strong> {actionResult.credentials.username || actionResult.credentials.email}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Temporary Password:</strong> {actionResult.credentials.password}
@@ -1436,7 +1438,7 @@ export default function EvaluatorRegistrationAdminPage() {
                     sx={{ mt: 1.5 }}
                     onClick={() =>
                       copyToClipboard(
-                        `Username: ${actionResult.credentials.username}\nPassword: ${actionResult.credentials.password}`
+                        `Username: ${actionResult.credentials.username || actionResult.credentials.email}\nPassword: ${actionResult.credentials.password}`
                       )
                     }
                   >
@@ -1453,8 +1455,8 @@ export default function EvaluatorRegistrationAdminPage() {
           ) : (
             <Box sx={{ mt: 1 }}>
               <Typography variant="body1" sx={{ mb: 2 }}>
-                Candidate: <strong>{selectedSubmission?.applicantName}</strong> (
-                {selectedSubmission?.applicantEmail})
+                Candidate: <strong>{selectedSubmission?.applicantName || selectedSubmission?.fullname || selectedSubmission?.fieldValues?.name || "Candidate"}</strong> (
+                {selectedSubmission?.applicantEmail || selectedSubmission?.email || selectedSubmission?.fieldValues?.email || "-"})
               </Typography>
               {actionType === "Approve" && (
                 <Alert severity="warning" sx={{ mb: 2 }}>
