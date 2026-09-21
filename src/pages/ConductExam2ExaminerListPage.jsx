@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   Alert,
@@ -6,12 +6,15 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   Grid,
   LinearProgress,
   MenuItem,
   Paper,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography
 } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
@@ -40,7 +43,7 @@ const blankForm = {
   examinercode: ""
 };
 const uniq = (items) => [...new Set(items.map((item) => String(item || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-const courseLabel = (row) => `${row.course || ""}${row.coursecode ? ` (${row.coursecode})` : ""}`;
+const courseLabel = (row) => `${row.course || ""}${row.coursecode ? ` (${row.coursecode})` : ""}${row.semester ? ` - Sem ${row.semester}` : ""}${row.programcode ? ` [${row.programcode}]` : ""}`;
 const htmlEscape = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;",
   "<": "&lt;",
@@ -57,6 +60,8 @@ export default function ConductExam2ExaminerListPage() {
   const [institution, setInstitution] = useState(null);
   const [form, setForm] = useState(blankForm);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [assignmentMode, setAssignmentMode] = useState("onePaperToMultipleExaminers");
+  const [selectedCourses, setSelectedCourses] = useState([]);
   const [selectedRowIds, setSelectedRowIds] = useState([]);
   const [editId, setEditId] = useState("");
   const [filters, setFilters] = useState({ academicyear: "", examcode: "", regulation: "", programcode: "", coursecode: "" });
@@ -114,7 +119,8 @@ export default function ConductExam2ExaminerListPage() {
     });
     const courseMap = new Map();
     byProgram.forEach((row) => {
-      if (row.coursecode) courseMap.set(row.coursecode, row);
+      const key = `${row.programcode || ""}__${row.coursecode || ""}__${row.semester || ""}`;
+      if (row.coursecode) courseMap.set(key, row);
     });
     return {
       academicyears: uniq(courses.map((row) => row.academicyear)),
@@ -154,24 +160,71 @@ export default function ConductExam2ExaminerListPage() {
       setError("");
       setMessage("");
       const base = { ...form, colid: global1.colid, user: global1.user };
-      if (!base.academicyear || !base.examcode || !base.regulation || !base.programcode || !base.coursecode) {
-        setError("Select academic year, exam, regulation, program and course.");
+      if (!base.academicyear || !base.examcode || !base.regulation) {
+        setError("Select academic year, exam, and regulation.");
         return;
       }
-      if (!editId && selectedUsers.length) {
-        const items = selectedUsers.map((user) => ({ ...base, examinername: user.name || "", examineremail: user.email || "" }));
-        const res = await ep1.post("/api/v2/conductexam2/examiners-bulk", { colid: global1.colid, user: global1.user, items });
-        setMessage(`${res.data?.saved || 0} examiner${res.data?.saved === 1 ? "" : "s"} saved.`);
-      } else {
+
+      // Mode 2: Multiple Papers to One Examiner
+      if (!editId && assignmentMode === "multiplePapersToOneExaminer") {
         if (!base.examinername || !base.examineremail) {
           setError("Select or enter examiner name and email.");
           return;
         }
-        await ep1.post("/api/v2/conductexam2/examiners", { ...base, id: editId });
-        setMessage(editId ? "Examiner updated." : "Examiner saved.");
+        if (!selectedCourses.length) {
+          setError("Please select at least one paper / course to assign.");
+          return;
+        }
+
+        const items = selectedCourses.map((c) => ({
+          colid: global1.colid,
+          user: global1.user,
+          academicyear: base.academicyear,
+          exam: base.exam,
+          examcode: base.examcode,
+          regulation: base.regulation,
+          program: c.program || base.program || "",
+          programcode: c.programcode || base.programcode || "",
+          type: c.type || "",
+          subject: c.subject || "",
+          semester: c.semester || "",
+          course: c.course,
+          coursecode: c.coursecode,
+          examinername: base.examinername,
+          examineremail: base.examineremail,
+          examinercode: base.examinercode || ""
+        }));
+
+        const res = await ep1.post("/api/v2/conductexam2/examiners-bulk", { colid: global1.colid, user: global1.user, items });
+        setMessage(`${res.data?.saved || 0} paper${res.data?.saved === 1 ? "" : "s"} successfully assigned to ${base.examinername}.`);
       }
+      // Mode 1: One Paper to Multiple Examiners (or update existing)
+      else {
+        if (!base.programcode || !base.coursecode) {
+          setError("Select program and course.");
+          return;
+        }
+        if (!editId && selectedUsers.length) {
+          const items = selectedUsers.map((user) => ({
+            ...base,
+            examinername: user.name || "",
+            examineremail: user.email || ""
+          }));
+          const res = await ep1.post("/api/v2/conductexam2/examiners-bulk", { colid: global1.colid, user: global1.user, items });
+          setMessage(`${res.data?.saved || 0} examiner${res.data?.saved === 1 ? "" : "s"} saved.`);
+        } else {
+          if (!base.examinername || !base.examineremail) {
+            setError("Select or enter examiner name and email.");
+            return;
+          }
+          await ep1.post("/api/v2/conductexam2/examiners", { ...base, id: editId });
+          setMessage(editId ? "Examiner updated." : "Examiner saved.");
+        }
+      }
+
       setForm(blankForm);
       setSelectedUsers([]);
+      setSelectedCourses([]);
       setEditId("");
       await loadRows();
     } catch (err) {
@@ -185,6 +238,8 @@ export default function ConductExam2ExaminerListPage() {
     setEditId(row._id);
     setForm({ ...blankForm, ...row });
     setSelectedUsers([]);
+    setSelectedCourses([]);
+    setAssignmentMode("onePaperToMultipleExaminers");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -397,39 +452,283 @@ export default function ConductExam2ExaminerListPage() {
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
 
         <Paper elevation={0} sx={{ p: 2.5, mb: 2, border: "1px solid #e5e7eb", borderRadius: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={2}><TextField select fullWidth label="Academic Year" value={form.academicyear} onChange={(e) => setForm({ ...blankForm, academicyear: e.target.value })}>{dropdowns.academicyears.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={3}><TextField select fullWidth label="Exam" value={form.examcode} onChange={(e) => {
-              const exam = dropdowns.exams.find((item) => item.examcode === e.target.value);
-              setForm((prev) => ({ ...blankForm, academicyear: prev.academicyear, examcode: e.target.value, exam: exam?.exam || "" }));
-            }}>{dropdowns.exams.map((item) => <MenuItem key={item.examcode} value={item.examcode}>{item.exam} ({item.examcode})</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={2}><TextField select fullWidth label="Regulation" value={form.regulation} onChange={(e) => setForm((prev) => ({ ...prev, regulation: e.target.value, program: "", programcode: "", course: "", coursecode: "" }))}>{dropdowns.regulations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={3}><TextField select fullWidth label="Program" value={form.programcode} onChange={(e) => {
-              const program = dropdowns.programs.find((item) => item.programcode === e.target.value);
-              setForm((prev) => ({ ...prev, programcode: e.target.value, program: program?.program || "", course: "", coursecode: "" }));
-            }}>{dropdowns.programs.map((item) => <MenuItem key={item.programcode} value={item.programcode}>{item.program} ({item.programcode})</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={2}><TextField select fullWidth label="Course" value={form.coursecode} onChange={(e) => setCourseDetails(e.target.value)}>{dropdowns.coursesList.map((item) => <MenuItem key={item.coursecode} value={item.coursecode}>{courseLabel(item)}</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={6}>
-              <Autocomplete
-                multiple
-                disableCloseOnSelect
-                options={users}
-                value={selectedUsers}
-                isOptionEqualToValue={(option, value) => option.email === value.email}
-                getOptionLabel={(option) => `${option.name || ""}${option.email ? ` (${option.email})` : ""}`}
-                onChange={(event, value) => {
-                  setSelectedUsers(value || []);
-                  if (value?.length === 1) setForm((prev) => ({ ...prev, examinername: value[0].name || "", examineremail: value[0].email || "" }));
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            justifyContent="space-between"
+            spacing={2}
+            sx={{ mb: 2.5, pb: 1.5, borderBottom: "1px solid #e5e7eb" }}
+          >
+            <Box>
+              <Typography variant="subtitle1" fontWeight={800} color="primary">
+                {editId ? "Edit Assigned Examiner" : "Assign Examiner to Paper(s)"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {editId
+                  ? "Editing single examiner assignment record."
+                  : assignmentMode === "onePaperToMultipleExaminers"
+                  ? "Option 1: Assign one selected course/paper to one or multiple examiners."
+                  : "Option 2: Assign multiple courses/papers to a single designated examiner."}
+              </Typography>
+            </Box>
+
+            {!editId && (
+              <ToggleButtonGroup
+                value={assignmentMode}
+                exclusive
+                onChange={(e, newMode) => {
+                  if (newMode) {
+                    setAssignmentMode(newMode);
+                    setSelectedUsers([]);
+                    setSelectedCourses([]);
+                  }
                 }}
-                renderOption={(props, option, { selected }) => <li {...props}><Checkbox checked={selected} sx={{ mr: 1 }} />{option.name || ""}{option.email ? ` (${option.email})` : ""}</li>}
-                renderInput={(params) => <TextField {...params} label="Bulk Select Examiners" placeholder="Search examiner" />}
-              />
+                size="small"
+                color="primary"
+              >
+                <ToggleButton
+                  value="onePaperToMultipleExaminers"
+                  sx={{
+                    px: 2,
+                    py: 0.8,
+                    fontWeight: 700,
+                    textTransform: "none",
+                    "&.Mui-selected": { bgcolor: "primary.main", color: "#fff", "&:hover": { bgcolor: "primary.dark" } }
+                  }}
+                >
+                  One Paper to Multiple Examiners
+                </ToggleButton>
+                <ToggleButton
+                  value="multiplePapersToOneExaminer"
+                  sx={{
+                    px: 2,
+                    py: 0.8,
+                    fontWeight: 700,
+                    textTransform: "none",
+                    "&.Mui-selected": { bgcolor: "primary.main", color: "#fff", "&:hover": { bgcolor: "primary.dark" } }
+                  }}
+                >
+                  Multiple Papers to One Examiner
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
+          </Stack>
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField select fullWidth label="Academic Year" value={form.academicyear} onChange={(e) => setForm({ ...blankForm, academicyear: e.target.value })}>
+                {dropdowns.academicyears.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}
+              </TextField>
             </Grid>
-            <Grid item xs={12} md={3}><TextField fullWidth label="Examiner Name" value={form.examinername} onChange={(e) => setForm({ ...form, examinername: e.target.value })} /></Grid>
-            <Grid item xs={12} md={3}><TextField fullWidth label="Examiner Email" value={form.examineremail} onChange={(e) => setForm({ ...form, examineremail: e.target.value })} /></Grid>
-            <Grid item xs={12} md={2}><TextField fullWidth label="Examiner Code" value={form.examinercode} onChange={(e) => setForm({ ...form, examinercode: e.target.value })} /></Grid>
-            <Grid item xs={12} md={2}><Button fullWidth variant="contained" onClick={saveExaminer} disabled={saving} sx={{ height: 56 }}>{saving ? "Saving..." : editId ? "Update" : selectedUsers.length > 1 ? `Save ${selectedUsers.length}` : "Save"}</Button></Grid>
-            <Grid item xs={12} md={2}><Button fullWidth variant="outlined" onClick={() => { setForm(blankForm); setSelectedUsers([]); setEditId(""); }} sx={{ height: 56 }}>Clear</Button></Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField select fullWidth label="Exam" value={form.examcode} onChange={(e) => {
+                const exam = dropdowns.exams.find((item) => item.examcode === e.target.value);
+                setForm((prev) => ({ ...blankForm, academicyear: prev.academicyear, examcode: e.target.value, exam: exam?.exam || "" }));
+              }}>
+                {dropdowns.exams.map((item) => <MenuItem key={item.examcode} value={item.examcode}>{item.exam} ({item.examcode})</MenuItem>)}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField select fullWidth label="Regulation" value={form.regulation} onChange={(e) => setForm((prev) => ({ ...prev, regulation: e.target.value, program: "", programcode: "", course: "", coursecode: "" }))}>
+                {dropdowns.regulations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}
+              </TextField>
+            </Grid>
+
+            {assignmentMode === "onePaperToMultipleExaminers" && (
+              <>
+                <Grid item xs={12} sm={6} md={2.5}>
+                  <TextField select fullWidth label="Program" value={form.programcode} onChange={(e) => {
+                    const program = dropdowns.programs.find((item) => item.programcode === e.target.value);
+                    setForm((prev) => ({ ...prev, programcode: e.target.value, program: program?.program || "", course: "", coursecode: "" }));
+                  }}>
+                    {dropdowns.programs.map((item) => <MenuItem key={item.programcode} value={item.programcode}>{item.program} ({item.programcode})</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={2.5}>
+                  <TextField select fullWidth label="Course / Paper" value={form.coursecode} onChange={(e) => setCourseDetails(e.target.value)}>
+                    {dropdowns.coursesList.map((item) => <MenuItem key={`${item.programcode || ""}__${item.coursecode}`} value={item.coursecode}>{courseLabel(item)}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={5}>
+                  <Autocomplete
+                    multiple
+                    disableCloseOnSelect
+                    options={users}
+                    value={selectedUsers}
+                    isOptionEqualToValue={(option, value) => option.email === value.email}
+                    getOptionLabel={(option) => `${option.name || ""}${option.email ? ` (${option.email})` : ""}`}
+                    onChange={(event, value) => {
+                      setSelectedUsers(value || []);
+                      if (value?.length === 1) setForm((prev) => ({ ...prev, examinername: value[0].name || "", examineremail: value[0].email || "" }));
+                    }}
+                    renderOption={(props, option, { selected }) => <li {...props}><Checkbox checked={selected} sx={{ mr: 1 }} />{option.name || ""}{option.email ? ` (${option.email})` : ""}</li>}
+                    renderInput={(params) => <TextField {...params} label="Bulk Select Examiners" placeholder="Search examiner" />}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={2.5}>
+                  <TextField fullWidth label="Examiner Name" value={form.examinername} onChange={(e) => setForm({ ...form, examinername: e.target.value })} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={2.5}>
+                  <TextField fullWidth label="Examiner Email" value={form.examineremail} onChange={(e) => setForm({ ...form, examineremail: e.target.value })} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                  <TextField fullWidth label="Examiner Code" value={form.examinercode} onChange={(e) => setForm({ ...form, examinercode: e.target.value })} />
+                </Grid>
+              </>
+            )}
+
+            {assignmentMode === "multiplePapersToOneExaminer" && (
+              <>
+                <Grid item xs={12} sm={6} md={5}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Filter Program (Optional)"
+                    value={form.programcode}
+                    onChange={(e) => {
+                      const program = dropdowns.programs.find((item) => item.programcode === e.target.value);
+                      setForm((prev) => ({ ...prev, programcode: e.target.value, program: program?.program || "" }));
+                    }}
+                  >
+                    <MenuItem value="">-- All Programs under Regulation --</MenuItem>
+                    {dropdowns.programs.map((item) => <MenuItem key={item.programcode} value={item.programcode}>{item.program} ({item.programcode})</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Autocomplete
+                    options={users}
+                    value={users.find((u) => u.email && u.email.toLowerCase() === (form.examineremail || "").toLowerCase()) || null}
+                    isOptionEqualToValue={(option, value) => option.email === value?.email}
+                    getOptionLabel={(option) => `${option.name || ""}${option.email ? ` (${option.email})` : ""}`}
+                    onChange={(event, value) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        examinername: value?.name || "",
+                        examineremail: value?.email || "",
+                        examinercode: value?.examinercode || prev.examinercode || ""
+                      }));
+                    }}
+                    renderInput={(params) => <TextField {...params} label="Select Single Examiner" placeholder="Search user by name or email" />}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth label="Examiner Name" value={form.examinername} onChange={(e) => setForm({ ...form, examinername: e.target.value })} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField fullWidth label="Examiner Email" value={form.examineremail} onChange={(e) => setForm({ ...form, examineremail: e.target.value })} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                  <TextField fullWidth label="Examiner Code" value={form.examinercode} onChange={(e) => setForm({ ...form, examinercode: e.target.value })} />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.8, flexWrap: "wrap", gap: 1 }}>
+                    <Typography variant="body2" fontWeight={700} color="text.primary">
+                      Select Papers / Courses ({selectedCourses.length} of {dropdowns.coursesList.length} selected):
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={!dropdowns.coursesList.length || selectedCourses.length === dropdowns.coursesList.length}
+                        onClick={() => setSelectedCourses([...dropdowns.coursesList])}
+                      >
+                        Select All ({dropdowns.coursesList.length})
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="secondary"
+                        disabled={!selectedCourses.length}
+                        onClick={() => setSelectedCourses([])}
+                      >
+                        Clear Selection
+                      </Button>
+                    </Stack>
+                  </Box>
+                  <Autocomplete
+                    multiple
+                    disableCloseOnSelect
+                    options={dropdowns.coursesList}
+                    value={selectedCourses}
+                    isOptionEqualToValue={(option, value) =>
+                      (option._id && value._id) ? option._id === value._id : (option.coursecode === value.coursecode && option.programcode === value.programcode)
+                    }
+                    getOptionLabel={(option) => courseLabel(option)}
+                    onChange={(event, value) => setSelectedCourses(value || [])}
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Checkbox checked={selected} sx={{ mr: 1 }} />
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            {option.course} ({option.coursecode})
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Semester {option.semester} | Program: {option.program} ({option.programcode}) {option.type ? `| Type: ${option.type}` : ""}
+                          </Typography>
+                        </Box>
+                      </li>
+                    )}
+                    renderTags={(tagValue, getTagProps) =>
+                      tagValue.map((option, index) => (
+                        <Chip
+                          {...getTagProps({ index })}
+                          key={option._id || `${option.programcode}_${option.coursecode}`}
+                          label={`${option.course} (${option.coursecode})`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))
+                    }
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select Multiple Papers / Courses"
+                        placeholder={selectedCourses.length ? "Add more papers..." : "Click or search to select papers"}
+                      />
+                    )}
+                  />
+                </Grid>
+              </>
+            )}
+
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={saveExaminer}
+                disabled={saving}
+                sx={{ height: 56, fontWeight: 700 }}
+              >
+                {saving
+                  ? "Saving..."
+                  : editId
+                  ? "Update"
+                  : assignmentMode === "multiplePapersToOneExaminer"
+                  ? selectedCourses.length > 1
+                    ? `Assign (${selectedCourses.length} Papers)`
+                    : "Assign Paper"
+                  : selectedUsers.length > 1
+                  ? `Save (${selectedUsers.length} Examiners)`
+                  : "Save"}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => {
+                  setForm(blankForm);
+                  setSelectedUsers([]);
+                  setSelectedCourses([]);
+                  setEditId("");
+                }}
+                sx={{ height: 56 }}
+              >
+                Clear
+              </Button>
+            </Grid>
           </Grid>
         </Paper>
 
