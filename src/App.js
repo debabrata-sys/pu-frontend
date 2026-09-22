@@ -1180,6 +1180,8 @@ import ConductExamOnlineExamMarksTransferPage, {
 import { ConductExamDaywiseMarksMonitoringPage, ConductExamExaminerReassignmentPage, ConductExamMarksEntryMonitoringPage } from "./pages/ConductExamComponentMonitoringPages";
 import ExamModel2ComponentMarksCrudPage from "./pages/ExamModel2ComponentMarksCrudPage";
 import ExamModel2InterimMarksTransferPage from "./pages/ExamModel2InterimMarksTransferPage";
+import ExamModel3ComponentMarksCrudPage from "./pages/ExamModel3ComponentMarksCrudPage";
+import ExamModel3InterimMarksTransferPage from "./pages/ExamModel3InterimMarksTransferPage";
 import ConductExamPaperSetterRegistrationPage from "./pages/ConductExamPaperSetterRegistrationPage";
 import {
   ConductExamPaperSetterPanelApprovalPage,
@@ -1566,6 +1568,36 @@ import {
   ExaminationModel2TrPage,
   PublicExamModel2MarksheetVerifyPage
 } from "./pages/ExaminationModel2Pages";
+import {
+  ExaminationModel3MarksPage,
+  ExaminationModel3VivaMarksPage,
+  ExaminationModel3VivaGradingTemplatePage,
+  ExaminationModel3VivaGradingTemplateDetailPage,
+  ExaminationModel3VivaClassConfigurationPage,
+  ExaminationModel3VivaGradeProcessingPage,
+  ExaminationModel3VivaPercentageCalculationPage,
+  ExaminationModel3VivaComponentFailRulePage,
+  ExaminationModel3VivaMarksheetPage,
+  ExaminationModel3VivaMarksOnlyMarksheetPage,
+  ExaminationModel3VivaDynamicMarksheetPage,
+  ExaminationModel3VivaDynamicMarksOnlyMarksheetPage,
+  ExaminationModel3SampleMarksheet2Page,
+  ExaminationModel3SampleMarksheet3Page,
+  ExaminationModel3GradingTemplatePage,
+  ExaminationModel3GradingTemplateDetailPage,
+  ExaminationModel3ClassConfigurationPage,
+  ExaminationModel3GradeProcessingPage,
+  ExaminationModel3PercentageCalculationPage,
+  ExaminationModel3ComponentFailRulePage,
+  ExaminationModel3FinalGradeProcessingPage,
+  ExaminationModel3MarksheetPage,
+  ExaminationModel3AprMarksheetPage,
+  ExaminationModel3BulkAprMarksheetPage,
+  ExaminationModel3AprMarksheetSignaturePage,
+  ExaminationModel3BulkAprMarksheetSignaturePage,
+  ExaminationModel3TrPage,
+  PublicExamModel3MarksheetVerifyPage
+} from "./pages/ExaminationModel3Pages";
 import MenuSearchPage from "./pages/MenuSearchPage";
 import UserPivotReportPage from "./pages/UserPivotReportPage";
 import UserPivotCountPage from "./pages/UserPivotCountPage";
@@ -3853,6 +3885,36 @@ function App() {
         <Route path="/exammodel2bulkaprmarksheet-signature" element={<ExaminationModel2BulkAprMarksheetSignaturePage />} />
         <Route path="/exammodel2tr" element={<ExaminationModel2TrPage />} />
         <Route path="/verify-exam-model2-marksheet" element={<PublicExamModel2MarksheetVerifyPage />} />
+        <Route path="/exammodel3marks" element={<ExaminationModel3MarksPage />} />
+        <Route path="/exammodel3-component-marks-crud" element={<ExamModel3ComponentMarksCrudPage />} />
+        <Route path="/exammodel3-interim-marks-transfer" element={<ExamModel3InterimMarksTransferPage />} />
+        <Route path="/exammodel3vivamarks" element={<ExaminationModel3VivaMarksPage />} />
+        <Route path="/exammodel3viva-gradingtemplate" element={<ExaminationModel3VivaGradingTemplatePage />} />
+        <Route path="/exammodel3viva-gradingtemplatedetails" element={<ExaminationModel3VivaGradingTemplateDetailPage />} />
+        <Route path="/exammodel3viva-classconfiguration" element={<ExaminationModel3VivaClassConfigurationPage />} />
+        <Route path="/exammodel3viva-gradeprocessing" element={<ExaminationModel3VivaGradeProcessingPage />} />
+        <Route path="/exammodel3viva-percentagecalculation" element={<ExaminationModel3VivaPercentageCalculationPage />} />
+        <Route path="/exammodel3viva-componentfailrule" element={<ExaminationModel3VivaComponentFailRulePage />} />
+        <Route path="/exammodel3viva-marksheet" element={<ExaminationModel3VivaMarksheetPage />} />
+        <Route path="/exammodel3viva-marksheet-marks" element={<ExaminationModel3VivaMarksOnlyMarksheetPage />} />
+        <Route path="/exammodel3viva-dynamic-marksheet" element={<ExaminationModel3VivaDynamicMarksheetPage />} />
+        <Route path="/exammodel3viva-dynamic-marksheet-marks" element={<ExaminationModel3VivaDynamicMarksOnlyMarksheetPage />} />
+        <Route path="/exammodel3-sample-marksheet-2" element={<ExaminationModel3SampleMarksheet2Page />} />
+        <Route path="/exammodel3-sample-marksheet-3" element={<ExaminationModel3SampleMarksheet3Page />} />
+        <Route path="/exammodel3gradingtemplate" element={<ExaminationModel3GradingTemplatePage />} />
+        <Route path="/exammodel3gradingtemplatedetails" element={<ExaminationModel3GradingTemplateDetailPage />} />
+        <Route path="/exammodel3classconfiguration" element={<ExaminationModel3ClassConfigurationPage />} />
+        <Route path="/exammodel3gradeprocessing" element={<ExaminationModel3GradeProcessingPage />} />
+        <Route path="/exammodel3percentagecalculation" element={<ExaminationModel3PercentageCalculationPage />} />
+        <Route path="/exammodel3componentfailrule" element={<ExaminationModel3ComponentFailRulePage />} />
+        <Route path="/exammodel3finalgradeprocessing" element={<ExaminationModel3FinalGradeProcessingPage />} />
+        <Route path="/exammodel3marksheet" element={<ExaminationModel3MarksheetPage />} />
+        <Route path="/exammodel3aprmarksheet" element={<ExaminationModel3AprMarksheetPage />} />
+        <Route path="/exammodel3bulkaprmarksheet" element={<ExaminationModel3BulkAprMarksheetPage />} />
+        <Route path="/exammodel3aprmarksheet-signature" element={<ExaminationModel3AprMarksheetSignaturePage />} />
+        <Route path="/exammodel3bulkaprmarksheet-signature" element={<ExaminationModel3BulkAprMarksheetSignaturePage />} />
+        <Route path="/exammodel3tr" element={<ExaminationModel3TrPage />} />
+        <Route path="/verify-exam-model3-marksheet" element={<PublicExamModel3MarksheetVerifyPage />} />
         <Route path="/neplmsstudentwiseattendance" element={<NepLmsStudentwiseAttendanceReportPage />} />
         <Route path="/neplmsstudentcoursewiseattendance" element={<NepLmsStudentCoursewiseAttendanceReportPage />} />
         <Route path="/neplmsstudentlearningprofile" element={<NepLmsStudentLearningProfilePage />} />
