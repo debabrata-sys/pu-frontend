@@ -4,12 +4,21 @@ import {
   Autocomplete,
   Box,
   Button,
+  Card,
+  CardContent,
   Checkbox,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
   Grid,
+  InputLabel,
   ListItemText,
   MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Tabs,
@@ -271,6 +280,291 @@ function ItemsEditor({ items, setItems, showMake = false, showPrice = false, sho
   );
 }
 
+function IndentItemsPicker({
+  items,
+  setItems,
+  disabled = false,
+  selectedStoreId = "",
+  onStoreChange,
+  stores = [],
+  selectedDepartment = "",
+  onDepartmentChange,
+  departments = [],
+  approvalOption = "HOI/AI Approve",
+  onApprovalOptionChange
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [storeItems, setStoreItems] = useState([]);
+  const [allMasterItems, setAllMasterItems] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [openQtyModal, setOpenQtyModal] = useState(false);
+  const [selectedItemForQty, setSelectedItemForQty] = useState(null);
+  const [requestQty, setRequestQty] = useState("");
+  const [itemRemarks, setItemRemarks] = useState("");
+
+  useEffect(() => {
+    setLoadingItems(true);
+    getRows("itemmasterds2")
+      .then((rows) => setAllMasterItems(rows || []))
+      .catch(() => {})
+      .finally(() => setLoadingItems(false));
+  }, []);
+
+  const availableItems = useMemo(() => {
+    const list = allMasterItems;
+    const q = text(searchQuery).toLowerCase();
+    if (!q) return list;
+    return list.filter((item) =>
+      text(item.itemname || item.item || "").toLowerCase().includes(q) ||
+      text(item.itemcode || "").toLowerCase().includes(q) ||
+      text(item.category || "").toLowerCase().includes(q)
+    );
+  }, [allMasterItems, searchQuery]);
+
+  const handleOpenAddModal = (row) => {
+    setSelectedItemForQty(row);
+    setRequestQty("1");
+    setItemRemarks("");
+    setOpenQtyModal(true);
+  };
+
+  const handleConfirmAddToCart = () => {
+    if (!selectedItemForQty) return;
+    const qtyVal = Number(requestQty);
+    if (!qtyVal || qtyVal <= 0) {
+      alert("Please enter a valid quantity greater than 0");
+      return;
+    }
+
+    const itemCode = selectedItemForQty.itemcode || "";
+    const master = allMasterItems.find((m) => text(m.itemcode).toLowerCase() === text(itemCode).toLowerCase()) || {};
+
+    const newItem = {
+      itemid: selectedItemForQty._id || master._id || "",
+      itemcode: itemCode,
+      itemname: selectedItemForQty.itemname || selectedItemForQty.item || master.itemname || "",
+      category: selectedItemForQty.category || master.category || "",
+      itemtype: selectedItemForQty.itemtype || selectedItemForQty.type || master.itemtype || "",
+      unit: selectedItemForQty.unit || master.unit || "Nos",
+      unitcode: selectedItemForQty.unitcode || master.unitcode || "",
+      make: selectedItemForQty.make || master.make || "",
+      quantity: qtyVal,
+      estimatedprice: num(selectedItemForQty.estimatedprice || master.approximateprice || 0),
+      estimatedtotal: qtyVal * num(selectedItemForQty.estimatedprice || master.approximateprice || 0),
+      approvedquantity: 0,
+      issuedquantity: 0,
+      remarks: itemRemarks || ""
+    };
+
+    setItems([...items, newItem]);
+    setOpenQtyModal(false);
+    setSelectedItemForQty(null);
+    setRequestQty("");
+    setItemRemarks("");
+  };
+
+  const searchColumns = [
+    { field: "itemname", headerName: "Item Name", flex: 1, minWidth: 200, valueGetter: (params) => params.row.itemname || params.row.item || "" },
+    { field: "itemcode", headerName: "Item Code", width: 150 },
+    { field: "category", headerName: "Category", width: 160, valueGetter: (params) => params.row.category || params.row.itemtype || params.row.type || "" },
+    {
+      field: "action",
+      headerName: "Action",
+      width: 130,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <Button
+          variant="contained"
+          size="small"
+          disabled={disabled}
+          onClick={() => handleOpenAddModal(params.row)}
+        >
+          Add
+        </Button>
+      )
+    }
+  ];
+
+  const cartColumns = [
+    { field: "itemcode", headerName: "Item Code", width: 130 },
+    { field: "itemname", headerName: "Item Name", flex: 1, minWidth: 180 },
+    { field: "category", headerName: "Category", width: 140 },
+    { field: "unit", headerName: "Unit", width: 100 },
+    { field: "quantity", headerName: "Requested Qty", width: 140, type: "number" },
+    { field: "remarks", headerName: "Remarks", flex: 1, minWidth: 160, editable: !disabled },
+    {
+      field: "actions",
+      headerName: "Action",
+      width: 110,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <Button
+          color="error"
+          size="small"
+          disabled={disabled}
+          onClick={() => setItems(items.filter((_, idx) => idx !== params.row.id))}
+        >
+          Remove
+        </Button>
+      )
+    }
+  ];
+
+  const currentStoreObj = stores.find((s) => text(s._id || s.storeid) === text(selectedStoreId));
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 2, color: "#1976d2" }}>
+          1. Select Items
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="select-store-label">Select Store</InputLabel>
+              <Select
+                labelId="select-store-label"
+                label="Select Store"
+                value={selectedStoreId}
+                disabled={disabled}
+                onChange={(e) => onStoreChange && onStoreChange(e.target.value)}
+              >
+                {stores.map((st) => (
+                  <MenuItem key={st._id || st.storeid} value={st._id || st.storeid}>
+                    {st.storename || st.name || st.store}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Autocomplete
+              options={departments}
+              getOptionLabel={(o) => (typeof o === "string" ? o : o.departmentname || "")}
+              value={departments.find((d) => text(d.departmentname).toLowerCase() === text(selectedDepartment).toLowerCase()) || (selectedDepartment ? { departmentname: selectedDepartment } : null)}
+              onChange={(_, v) => onDepartmentChange && onDepartmentChange(v)}
+              disabled={disabled}
+              renderInput={(params) => (
+                <TextField {...params} label="Select Department *" size="small" fullWidth />
+              )}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="approval-option-label">Approval Option</InputLabel>
+              <Select
+                labelId="approval-option-label"
+                label="Approval Option"
+                value={approvalOption}
+                disabled={disabled}
+                onChange={(e) => onApprovalOptionChange && onApprovalOptionChange(e.target.value)}
+              >
+                <MenuItem value="HOI/AI Approve">HOI/AI Approve</MenuItem>
+                <MenuItem value="HOI approval">HOI approval</MenuItem>
+                <MenuItem value="Manual approval">Manual approval</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Search Items (Name or Code)"
+              placeholder="Search Items (Name or Code)"
+              variant="outlined"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={disabled}
+            />
+          </Grid>
+        </Grid>
+
+        <Paper variant="outlined" sx={{ minHeight: 280, width: "100%", mt: 1 }}>
+          <DataGrid
+            autoHeight
+            density="standard"
+            loading={loadingItems}
+            rows={availableItems.map((r, idx) => ({ ...r, id: r._id || r.itemcode || idx }))}
+            columns={searchColumns}
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25, page: 0 } }
+            }}
+            disableRowSelectionOnClick
+          />
+        </Paper>
+      </Paper>
+
+      <Paper elevation={1} sx={{ p: 3 }}>
+        <Typography variant="h6" fontWeight={700} sx={{ mb: 2, color: "#1976d2" }}>
+          2. Requested Items List ({items.length})
+        </Typography>
+        <DataGrid
+          autoHeight
+          density="compact"
+          rows={items.map((row, index) => ({ ...row, id: index }))}
+          columns={cartColumns}
+          pageSizeOptions={[10, 25]}
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10, page: 0 } }
+          }}
+          disableRowSelectionOnClick
+          processRowUpdate={(row) => {
+            setItems(items.map((it, idx) => (idx === row.id ? { ...it, remarks: row.remarks || "" } : it)));
+            return row;
+          }}
+        />
+      </Paper>
+
+      {/* Modal Dialog to enter quantity when clicking Add */}
+      <Dialog open={openQtyModal} onClose={() => setOpenQtyModal(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Add Item to Indent
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={700}>
+              {selectedItemForQty?.itemname || selectedItemForQty?.item}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Item Code: {selectedItemForQty?.itemcode || "-"} | Category: {selectedItemForQty?.category || selectedItemForQty?.itemtype || "-"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Store: {currentStoreObj?.storename || currentStoreObj?.name || "-"}
+            </Typography>
+          </Box>
+          <TextField
+            autoFocus
+            label="Quantity Required *"
+            type="number"
+            fullWidth
+            size="small"
+            value={requestQty}
+            onChange={(e) => setRequestQty(e.target.value)}
+            sx={{ mb: 2 }}
+            inputProps={{ min: 1 }}
+          />
+          <TextField
+            label="Remarks (Optional)"
+            fullWidth
+            size="small"
+            value={itemRemarks}
+            onChange={(e) => setItemRemarks(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenQtyModal(false)}>Cancel</Button>
+          <Button onClick={handleConfirmAddToCart} variant="contained" color="primary">
+            Add to Indent
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
 function usePurchase2Basics() {
   const [departments, setDepartments] = useState([]);
   const [stores, setStores] = useState([]);
@@ -375,6 +669,25 @@ export function Purchase2IndentRequestPage() {
       setError(err.message);
     }
   };
+
+  const handlePrintIndent = () => {
+    if (!items.length) {
+      setError("Please add at least one item before printing");
+      return;
+    }
+    const reqid = currentIndent?.reqid || currentIndent?.requestno || currentIndent?._id || "DRAFT";
+    const printHeader = {
+      ...form,
+      reqid,
+      requestno: reqid,
+      indentNumber: reqid,
+      requestedby: currentIndent?.requestedby || currentName(),
+      requestedbyemail: currentIndent?.requestedbyemail || currentUser(),
+      storename: form.store || stores.find((s) => text(s._id || s.storeid) === text(form.storeid))?.storename || ""
+    };
+    printPurchase2("indent", { header: printHeader, items });
+  };
+
   const creatorDepartments = useMemo(() => {
     const email = text(currentUser()).toLowerCase();
     return departments.filter((dept) => {
@@ -386,18 +699,83 @@ export function Purchase2IndentRequestPage() {
     <Page title="Indent Request" subtitle="Request items from stores assigned to the logged-in user." message={message} error={error || basicsError}>
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}><Autocomplete options={drafts} value={currentIndent} getOptionLabel={(o) => `${o.requestno || o.reqid || o._id || ""} - ${o.reqstatus || ""}`} onChange={(_, v) => openIndent(v)} renderInput={(params) => <TextField {...params} label="Open existing indent" size="small" />} /></Grid>
-          <Grid item xs={12} md={3}><Autocomplete options={creatorDepartments} getOptionLabel={(o) => o.departmentname || ""} onChange={(_, v) => setForm((p) => ({ ...p, departmentname: v?.departmentname || "", approvername: v?.hoiapprovername || "", approveruserid: v?.hoiapproveruserid || "" }))} renderInput={(params) => <TextField {...params} label="Department" size="small" helperText={!creatorDepartments.length ? "No department mapped to your creator user ID" : ""} />} /></Grid>
-          <Grid item xs={12} md={3}><Autocomplete options={stores} getOptionLabel={(o) => o.storename || o.name || ""} onChange={(_, v) => setForm((p) => ({ ...p, storeid: v?._id || v?.storeid || "", store: v?.storename || "" }))} renderInput={(params) => <TextField {...params} label="Assigned store" size="small" />} /></Grid>
-          <Grid item xs={12} md={2}><TextField size="small" type="date" label="Request date" value={form.reqdate} InputLabelProps={{ shrink: true }} onChange={(e) => setForm((p) => ({ ...p, reqdate: e.target.value }))} fullWidth /></Grid>
-          <Grid item xs={12} md={2}><TextField select size="small" label="Approval type" value={form.approvalOption} onChange={(e) => setForm((p) => ({ ...p, approvalOption: e.target.value }))} fullWidth>{["Manual approval", "HOI approval"].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField></Grid>
-          <Grid item xs={12} md={2}><TextField select size="small" label="Status" value={form.reqstatus} onChange={(e) => setForm((p) => ({ ...p, reqstatus: e.target.value }))} fullWidth>{statusOptions.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField></Grid>
-          <Grid item xs={12} md={2}><TextField size="small" label="Remarks" value={form.remarks} onChange={(e) => setForm((p) => ({ ...p, remarks: e.target.value }))} fullWidth /></Grid>
+          <Grid item xs={12} md={4}>
+            <Autocomplete
+              options={drafts}
+              value={currentIndent}
+              getOptionLabel={(o) => `${o.requestno || o.reqid || o._id || ""} - ${o.departmentname || ""} - ${o.reqstatus || ""}`}
+              onChange={(_, v) => openIndent(v)}
+              renderInput={(params) => <TextField {...params} label="Open existing indent" size="small" />}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              size="small"
+              type="date"
+              label="Request date"
+              value={form.reqdate}
+              InputLabelProps={{ shrink: true }}
+              onChange={(e) => setForm((p) => ({ ...p, reqdate: e.target.value }))}
+              fullWidth
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              select
+              size="small"
+              label="Status"
+              value={form.reqstatus}
+              onChange={(e) => setForm((p) => ({ ...p, reqstatus: e.target.value }))}
+              fullWidth
+            >
+              {statusOptions.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              size="small"
+              label="Remarks"
+              value={form.remarks}
+              onChange={(e) => setForm((p) => ({ ...p, remarks: e.target.value }))}
+              fullWidth
+            />
+          </Grid>
         </Grid>
       </Paper>
+
       {isSubmitted && <Alert severity="info" sx={{ mb: 2 }}>This indent has been submitted. Items are locked.</Alert>}
-      <ItemsEditor items={items} setItems={setItems} disabled={isSubmitted} />
-      <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap" }}><Button startIcon={<Save />} variant="contained" disabled={isSubmitted} onClick={() => save("Draft")}>Save draft</Button><Button variant="contained" color="success" disabled={isSubmitted} onClick={() => save("Submitted")}>Submit</Button><Button startIcon={<Print />} variant="outlined" disabled={!printData} onClick={() => printPurchase2("indent", printData)}>Print indent</Button><Button variant="outlined" onClick={() => openIndent(null)}>New indent</Button></Stack>
+
+      <IndentItemsPicker
+        items={items}
+        setItems={setItems}
+        disabled={isSubmitted}
+        selectedStoreId={form.storeid}
+        onStoreChange={(storeId) => {
+          const storeObj = stores.find((s) => text(s._id || s.storeid) === text(storeId));
+          setForm((p) => ({ ...p, storeid: storeId, store: storeObj?.storename || storeObj?.name || "" }));
+        }}
+        stores={stores}
+        selectedDepartment={form.departmentname}
+        onDepartmentChange={(v) => {
+          const deptName = typeof v === "string" ? v : v?.departmentname || "";
+          setForm((p) => ({
+            ...p,
+            departmentname: deptName,
+            approvername: v?.hoiapprovername || p.approvername || "",
+            approveruserid: v?.hoiapproveruserid || p.approveruserid || ""
+          }));
+        }}
+        departments={creatorDepartments.length ? creatorDepartments : departments}
+        approvalOption={form.approvalOption}
+        onApprovalOptionChange={(val) => setForm((p) => ({ ...p, approvalOption: val }))}
+      />
+
+      <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap" }}>
+        <Button startIcon={<Save />} variant="contained" disabled={isSubmitted} onClick={() => save("Draft")}>Save draft</Button>
+        <Button variant="contained" color="success" disabled={isSubmitted} onClick={() => save("Submitted")}>Submit</Button>
+        <Button startIcon={<Print />} variant="outlined" disabled={!items.length} onClick={handlePrintIndent}>Print indent</Button>
+        <Button variant="outlined" onClick={() => openIndent(null)}>New indent</Button>
+      </Stack>
     </Page>
   );
 }
@@ -410,8 +788,12 @@ export function Purchase2IndentPrintPage() {
   const [error, setError] = useState("");
   const load = async () => {
     try {
+      const email = text(currentUser()).toLowerCase();
       const rows = await getRows("storerequisitionds2");
-      setIndents(rows.sort((a, b) => new Date(b.createdAt || b.reqdate || 0) - new Date(a.createdAt || a.reqdate || 0)));
+      const myIndents = rows.filter((row) =>
+        sameEmail(row.creatoruserid || row.requestedbyemail || row.user, email)
+      );
+      setIndents(myIndents.sort((a, b) => new Date(b.createdAt || b.reqdate || 0) - new Date(a.createdAt || a.reqdate || 0)));
     } catch (err) {
       setError(err.message || "Unable to load indents");
     }

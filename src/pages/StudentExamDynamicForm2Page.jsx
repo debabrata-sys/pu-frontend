@@ -1069,6 +1069,7 @@ export default function StudentExamDynamicForm2Page() {
   const [uploadingDoc, setUploadingDoc] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [eligibility, setEligibility] = useState(null);
 
   // Exam Form Fill-up Dates states
   const [fillupDates, setFillupDates] = useState([]);
@@ -1109,6 +1110,7 @@ export default function StudentExamDynamicForm2Page() {
       setError("");
       setMessage("");
       setContext(null);
+      setEligibility(null);
       setSelectedCourses([]);
       setSelectedFormId("");
       const res = await ep1.get("/api/v2/conductexam/student-exam-form-context", {
@@ -1123,6 +1125,21 @@ export default function StudentExamDynamicForm2Page() {
       const nextContext = res.data?.data || null;
       setContext(nextContext);
       if (nextContext?.forms?.length) setSelectedFormId(nextContext.forms[0].formid);
+
+      // Check student exam form eligibility (75% attendance + semester fee clearance)
+      try {
+        const eligRes = await ep1.get("/api/v2/conductexam/form-eligibility/check-student", {
+          params: {
+            colid: global1.colid,
+            regno: global1.regno,
+            academicyear: filters.academicyear,
+            semester: nextContext?.student?.semester
+          }
+        });
+        setEligibility(eligRes.data?.data || null);
+      } catch (eligErr) {
+        console.warn("Unable to check eligibility:", eligErr);
+      }
 
       // Refresh fill-up dates for student's academic year
       loadFillupDates(filters.academicyear);
@@ -1244,7 +1261,7 @@ export default function StudentExamDynamicForm2Page() {
       setError("");
       setMessage("");
       const selectedCourseRows = selectedCourses.map((key) => courseRows.find((row) => row.id === key)).filter(Boolean);
-      const res = await ep1.post("/api/v2/conductexam/student-exam-form-submit", {
+      const res = await ep1.post("/api/v2/conductexam/form-eligibility/submit-form", {
         colid: global1.colid,
         regno: global1.regno,
         formid: selectedFormId,
@@ -1262,10 +1279,14 @@ export default function StudentExamDynamicForm2Page() {
         setContext((prev) => (prev ? { ...prev, examFeeLedger: res.data.examFeeLedger } : prev));
       }
       setMessage(
+        res.data?.message ||
         `Exam form submitted. Ledger rows: ${res.data?.ledgerCreated || 0}, examroll rows: ${
           res.data?.examRollCreated || 0
         }`
       );
+      if (eligibility) {
+        setEligibility((prev) => (prev ? { ...prev, formFilled: true } : prev));
+      }
     } catch (err) {
       const errors = err.response?.data?.errors;
       setError(errors?.length ? errors.join("\n") : err.response?.data?.message || "Unable to submit exam form");
@@ -1533,6 +1554,61 @@ export default function StudentExamDynamicForm2Page() {
         {/* 3. Student Details, Dynamic Form Tabs, Documents, Courses & Ledger */}
         {context && (
           <>
+            {/* Exam Form Eligibility Card (75% Attendance + Semester Fees) */}
+            {eligibility && (
+              <Paper
+                elevation={0}
+                sx={{
+                  ...paperSx,
+                  mt: 2.5,
+                  p: 2,
+                  border: `1.5px solid ${eligibility.isEligible ? "#86efac" : "#fca5a5"}`,
+                  bgcolor: eligibility.isEligible ? "#f0fdf4" : "#fff1f2"
+                }}
+              >
+                <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} spacing={1.5}>
+                  <Box>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                      <Chip
+                        icon={eligibility.isEligible ? <CheckCircle /> : <Warning />}
+                        label={eligibility.isEligible ? "Eligible to Fill Exam Form" : "Not Eligible to Fill Exam Form"}
+                        color={eligibility.isEligible ? "success" : "error"}
+                        sx={{ fontWeight: 800 }}
+                      />
+                      {eligibility.manualOverride && (
+                        <Chip size="small" color="info" label="Admin Condonation / Override Granted" sx={{ fontWeight: 700 }} />
+                      )}
+                      {eligibility.formFilled && (
+                        <Chip size="small" color="primary" label="Form Fill-up Completed" sx={{ fontWeight: 700 }} />
+                      )}
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      {eligibility.isEligible
+                        ? eligibility.manualOverride
+                          ? `Eligibility approved via special condonation: "${eligibility.overrideReason || "Approved"}". You may proceed to select courses and submit.`
+                          : "You satisfy all pre-requisites (minimum 75% attendance and semester fee clearance). You may proceed to submit your exam form."
+                        : "You are not eligible to fill up this examination form. A minimum of 75% attendance and full semester fee payment are mandatory to be eligible."}
+                    </Typography>
+                  </Box>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip
+                      variant="outlined"
+                      color={eligibility.attendance?.meetsThreshold ? "success" : "error"}
+                      label={`Attendance: ${eligibility.attendance?.percent}% (Min 75% req)`}
+                      sx={{ fontWeight: 700 }}
+                    />
+                    <Chip
+                      variant="outlined"
+                      color={eligibility.fees?.isCleared ? "success" : "error"}
+                      label={eligibility.fees?.isCleared ? "Semester Fees: Cleared" : `Semester Due: ₹${Number(eligibility.fees?.balance || 0).toLocaleString("en-IN")}`}
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </Stack>
+                </Stack>
+              </Paper>
+            )}
+
             {/* Student Details Card */}
             <Paper sx={{ ...paperSx, mt: 2.5 }}>
               <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2} sx={{ mb: 1 }}>
@@ -1740,11 +1816,15 @@ export default function StudentExamDynamicForm2Page() {
                 <Button
                   variant="contained"
                   size="large"
-                  disabled={submitting || !selectedForm || !selectedCourses.length}
+                  disabled={submitting || !selectedForm || !selectedCourses.length || Boolean(eligibility && !eligibility.isEligible) || Boolean(scheduleStatus?.isClosed)}
                   startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Save />}
                   onClick={submit}
                 >
-                  Submit exam form
+                  {eligibility && !eligibility.isEligible
+                    ? "Ineligible to Submit (Attendance/Fee Defaulter)"
+                    : scheduleStatus?.isClosed
+                    ? "Submission Window Closed"
+                    : "Submit exam form"}
                 </Button>
               </Stack>
             </Paper>

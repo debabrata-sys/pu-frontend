@@ -1250,6 +1250,7 @@ import { ConductExamGeneratorAllocationPage, ConductExamGeneratorMasterPage, Con
 import { ConductExamOnScreenMarkingPage, ConductExamScoreRulePage } from "./pages/ConductExamOnScreenMarkingPages";
 import { ConductExamFeePage, ConductExamFormBuilderPage, ConductExamStudentFormPage, StudentExamDynamicFormPage } from "./pages/ConductExamFormPages";
 import StudentExamDynamicForm2Page from "./pages/StudentExamDynamicForm2Page";
+import ConductExamFormEligibilityPage from "./pages/ConductExamFormEligibilityPage";
 import FacultySelfRegistrationPage from "./pages/FacultySelfRegistrationPage";
 import FacultyRegistrationAdminPage from "./pages/FacultyRegistrationAdminPage";
 import EvaluatorRegistrationAdminPage from "./pages/EvaluatorRegistrationAdminPage";
@@ -4217,6 +4218,7 @@ function App() {
         <Route path="/exam-appeal-examiner-marks" element={<ExamAppealExaminerMarksPage />} />
         <Route path="/exam-appeal-coe-review" element={<ExamAppealCoeReviewPage />} />
         <Route path="/conduct-exam-form-builder" element={<ConductExamFormBuilderPage />} />
+        <Route path="/conduct-exam-form-eligibility" element={<ConductExamFormEligibilityPage />} />
         <Route path="/conduct-exam-dates" element={<ConductExamDatesPage />} />
         <Route path="/conduct-exam-rooms" element={<ConductExamRoomPage />} />
         <Route path="/conduct-exam-courses" element={<ConductExamCoursePage />} />
