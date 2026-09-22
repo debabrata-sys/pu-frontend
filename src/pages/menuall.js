@@ -2646,13 +2646,6 @@ export function menuitemsall() {
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Exam form builder" />}
           </ListItem>
 
-          <ListItem button component={RouterLink} to="/conduct-exam-form-eligibility">
-            <ListItemIcon>
-              <PersonIcon />
-            </ListItemIcon>
-            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px" }} primary="Exam form eligibility" />}
-          </ListItem>
-
           <ListItem button component={RouterLink} to="/conduct-exam-student-form">
             <ListItemIcon>
               <PersonIcon />
