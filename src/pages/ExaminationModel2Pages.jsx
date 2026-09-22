@@ -2271,7 +2271,7 @@ export function ExaminationModel2AprMarksheetSignaturePage() {
   return <ExaminationModel2AprMarksheetPageBase withRegistrarSignature pageTitle="Annual Performance Report Signature" pageSubtitle="Copy of Annual Performance Report with selectable Registrar signature." />;
 }
 
-const trCell = { border: "1px solid #111", padding: "3px 4px", verticalAlign: "top", lineHeight: 1.15 };
+const trCell = { border: "1px solid #000", padding: "1.5px 2px", verticalAlign: "top", lineHeight: 1.15, fontSize: "6.5pt", color: "#000" };
 const trHead = { ...trCell, fontWeight: 900, textAlign: "center", background: "#f3f4f6" };
 const fmt = (value) => (value === null || value === undefined || value === "" ? "" : value);
 const numFmt = (value) => {
@@ -2279,128 +2279,345 @@ const numFmt = (value) => {
   return Number.isFinite(parsed) ? parsed.toString() : "";
 };
 
+function chunkStudents(arr, size = 2) {
+  if (!Array.isArray(arr) || arr.length === 0) return [[]];
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const toRomanSem = (val) => {
+  if (!val) return "";
+  const s = String(val).trim().toUpperCase();
+  const map = { "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII", "8": "VIII" };
+  return map[s] || (s.startsWith("SEM") ? s : `${s}`);
+};
+
 function ExamModel2TrPrint({ report }) {
   const institution = report?.institution || {};
   const filters = report?.filters || {};
   const students = report?.students || [];
   const summary = report?.summary || {};
-  const title = [
-    filters.program,
-    filters.semester ? `${filters.semester}` : "",
-    filters.exam,
-    filters.academicyear
-  ].filter(Boolean).join(", ");
-  const total = summary.total || {};
+
+  const programTitle = filters.program || "B.Tech (COMPUTER SCIENCE & ENGINEERING)";
+  const semRoman = toRomanSem(filters.semester);
+  const semText = semRoman ? `${semRoman} SEMESTER` : (filters.semester ? `${filters.semester} SEMESTER` : "");
+  const examText = filters.exam || "JUNE-2026";
+  const headerTitle = [programTitle, semText, examText].filter(Boolean).join(" ");
+  const collegeName = institution.institutionname || institution.name || "School of Research & Technology, Bhopal";
+
+  const studentChunks = chunkStudents(students, 2);
+  const totalPages = Math.max(1, studentChunks.length);
 
   return (
-    <Paper id="exam-model2-tr-print" elevation={0} sx={{ bgcolor: "#fff", color: "#000", p: 1.5, border: "1px solid #111", borderRadius: 0, minWidth: 1280, "& *": { color: "#000 !important" } }}>
-      <Stack alignItems="center" spacing={0.25} sx={{ mb: 1 }}>
-        {institution.logolink && <Box component="img" src={institution.logolink} alt="" sx={{ height: 42, objectFit: "contain" }} />}
-        <Typography sx={{ fontSize: 15, fontWeight: 950 }}>{institution.institutionname || institution.insname || institution.name || ""}</Typography>
-        <Typography sx={{ fontSize: 10, fontWeight: 700 }}>{institution.address || ""}</Typography>
-        <Typography sx={{ fontSize: 16, fontWeight: 950, mt: 0.5 }}>TABULATION REGISTER</Typography>
-        <Typography sx={{ fontSize: 12, fontWeight: 900 }}>{title}</Typography>
-        <Typography sx={{ fontSize: 11, fontWeight: 800 }}>
-          Regulation: {fmt(filters.regulation)} | Program Code: {fmt(filters.programcode)} | Exam Code: {fmt(filters.examcode)} | Source: {fmt(report?.source)}
-        </Typography>
-      </Stack>
+    <Box id="exam-model2-tr-bulk">
+      {studentChunks.map((pageStudents, pageIdx) => {
+        const isLastPage = pageIdx === totalPages - 1;
 
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
-        <thead>
-          <tr>
-            {["S.No", "Enrolment No", "Name of Examinee", "Father's Name", "Mother's Name", "Gender", "Status", "Batch", "Branch Name", "Paper Code", "Paper Name", "TH Max", "TH MO", "TH %", "TH Grade", "PR Max", "PR MO", "PR %", "PR Grade", "VV Max", "VV MO", "VV %", "VV Grade", "Total Max", "Total MO", "Total %", "Grade", "Result", "Attempt", "Section", "Remarks"].map((head) => (
-              <th key={head} style={trHead}>{head}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((student) => (
-            <React.Fragment key={student.regno}>
-              {(student.courses || []).map((course, index) => (
-                <tr key={`${student.regno}-${course.coursecode}`}>
-                  {index === 0 && (
-                    <>
-                      <td rowSpan={student.courses.length} style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{student.srno}</td>
-                      <td rowSpan={student.courses.length} style={trCell}>{fmt(student.enrolmentno)}</td>
-                      <td rowSpan={student.courses.length} style={{ ...trCell, fontWeight: 900 }}>{fmt(student.name)}</td>
-                      <td rowSpan={student.courses.length} style={trCell}>{fmt(student.fathername)}</td>
-                      <td rowSpan={student.courses.length} style={trCell}>{fmt(student.mothername)}</td>
-                      <td rowSpan={student.courses.length} style={{ ...trCell, textAlign: "center" }}>{fmt(student.gender)}</td>
-                      <td rowSpan={student.courses.length} style={{ ...trCell, textAlign: "center" }}>{fmt(student.studentstatus)}</td>
-                      <td rowSpan={student.courses.length} style={{ ...trCell, textAlign: "center" }}>{fmt(student.batch)}</td>
-                      <td rowSpan={student.courses.length} style={trCell}>{fmt(student.branchname)}</td>
-                    </>
-                  )}
-                  <td style={trCell}>{fmt(course.coursecode)}</td>
-                  <td style={{ ...trCell, minWidth: 150 }}>{fmt(course.course)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.theorymax)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.theoryobtained)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.theorypercentage)}</td>
-                  <td style={{ ...trCell, textAlign: "center" }}>{fmt(course.theorygrade)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.practicalmax)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.practicalobtained)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.practicalpercentage)}</td>
-                  <td style={{ ...trCell, textAlign: "center" }}>{fmt(course.practicalgrade)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.vivamax)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.vivaobtained)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.vivapercentage)}</td>
-                  <td style={{ ...trCell, textAlign: "center" }}>{fmt(course.vivagrade)}</td>
-                  <td style={{ ...trCell, textAlign: "right", fontWeight: 900 }}>{numFmt(course.overallmax)}</td>
-                  <td style={{ ...trCell, textAlign: "right", fontWeight: 900 }}>{numFmt(course.overallobtained)}</td>
-                  <td style={{ ...trCell, textAlign: "right" }}>{numFmt(course.overallpercentage)}</td>
-                  <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{fmt(course.overallgrade)}</td>
-                  <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{fmt(course.status)}</td>
-                  <td style={{ ...trCell, textAlign: "center" }}>{fmt(course.attempt)}</td>
-                  <td style={{ ...trCell, textAlign: "center" }}>{fmt(course.examsection)}</td>
-                  <td style={trCell}>{fmt(course.remarks)}</td>
-                </tr>
-              ))}
-              <tr>
-                <td colSpan={23} style={{ ...trCell, textAlign: "right", fontWeight: 950 }}>Aggregate Result</td>
-                <td style={{ ...trCell, textAlign: "right", fontWeight: 950 }}>{numFmt(student.aggregate?.max)}</td>
-                <td style={{ ...trCell, textAlign: "right", fontWeight: 950 }}>{numFmt(student.aggregate?.obtained)}</td>
-                <td style={{ ...trCell, textAlign: "right", fontWeight: 950 }}>{numFmt(student.aggregate?.percentage)}</td>
-                <td style={{ ...trCell, textAlign: "center", fontWeight: 950 }}>{fmt(student.aggregate?.result)}</td>
-                <td style={{ ...trCell, textAlign: "center", fontWeight: 950 }}>{fmt(student.aggregate?.result)}</td>
-                <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.aggregate?.attempt)}</td>
-                <td style={trCell}></td>
-                <td style={trCell}>{fmt(student.aggregate?.remarks)}</td>
-              </tr>
-            </React.Fragment>
-          ))}
-        </tbody>
-      </table>
+        return (
+          <Box key={pageIdx} className="tr-page">
+            {/* INSTITUTIONAL HEADER */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5, borderBottom: "1.5px solid #000", pb: 0.5 }}>
+              <Box sx={{ width: 60, display: "flex", justifyContent: "flex-start" }}>
+                {institution.logolink ? (
+                  <Box component="img" src={institution.logolink} alt="" sx={{ height: 38, maxWidth: 60, objectFit: "contain" }} />
+                ) : (
+                  <Box sx={{ width: 38, height: 38, border: "1px dashed #999", borderRadius: 1, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>Logo</Box>
+                )}
+              </Box>
+              <Box sx={{ flex: 1, textAlign: "center" }}>
+                <Typography sx={{ fontSize: "11pt", fontWeight: 950, textTransform: "uppercase", letterSpacing: 0.5, lineHeight: 1.2 }}>
+                  TABULATION REGISTER
+                </Typography>
+                <Typography sx={{ fontSize: "9.5pt", fontWeight: 800, lineHeight: 1.2 }}>
+                  {headerTitle}
+                </Typography>
+                <Typography sx={{ fontSize: "8.5pt", fontWeight: 700, lineHeight: 1.2 }}>
+                  College Name: {collegeName}
+                </Typography>
+              </Box>
+              <Box sx={{ width: 60 }} />
+            </Box>
 
-      <Box sx={{ mt: 1.25, display: "flex", gap: 2, alignItems: "flex-start" }}>
-        <table style={{ width: 360, borderCollapse: "collapse", fontSize: 10 }}>
-          <thead><tr><th colSpan={4} style={trHead}>GenderWise Summary Count</th></tr><tr>{["", "M", "F", "Total"].map((h) => <th key={h} style={trHead}>{h}</th>)}</tr></thead>
-          <tbody>
-            {["appeared", "passed", "failed"].map((key) => {
-              const male = (summary.genderwise || []).find((row) => row.gender === "M")?.[key] || 0;
-              const female = (summary.genderwise || []).find((row) => row.gender === "F")?.[key] || 0;
-              return <tr key={key}><td style={{ ...trCell, fontWeight: 900, textTransform: "capitalize" }}>{key}</td><td style={trCell}>{male}</td><td style={trCell}>{female}</td><td style={trCell}>{total[key] || 0}</td></tr>;
-            })}
-          </tbody>
-        </table>
-        <Box sx={{ flex: 1 }} />
-        <Stack spacing={3} sx={{ minWidth: 520, mt: 4 }}>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Signature of Tablulator:</Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Signature of Checker:</Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Deputy Registrar</Typography>
-          </Stack>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Name of Tablulator:</Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Name of Checker:</Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Date:</Typography>
-          </Stack>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Designation & Institute:</Typography>
-            <Typography sx={{ fontSize: 11, fontWeight: 900 }}>Designation & Institute:</Typography>
-          </Stack>
-        </Stack>
-      </Box>
-    </Paper>
+            {/* STUDENTS LIST (EXACTLY 2 STUDENTS PER PAGE) */}
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+              {pageStudents.map((student) => {
+                const courses = student.courses || [];
+                const displayCourses = [...courses];
+                while (displayCourses.length < 5) {
+                  displayCourses.push({ isDummy: true });
+                }
+
+                const grandTotal = student.grandTotal || {
+                  creditsOff: courses.reduce((s, c) => s + (Number(c.creditsOff) || 0), 0),
+                  creditsEarned: courses.reduce((s, c) => s + (Number(c.creditsEarned) || 0), 0),
+                  gpv: courses.reduce((s, c) => s + (Number(c.gpv) || 0), 0),
+                  sgpa: student.aggregate?.percentage ? (student.aggregate.percentage / 10).toFixed(2) : "-",
+                  result: student.aggregate?.result?.toUpperCase() || "PASS",
+                  failPaperCode: ""
+                };
+
+                const semHistory = (student.semHistory && student.semHistory.length === 8)
+                  ? student.semHistory
+                  : ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((s) => ({ semester: s, exam: "", status: "", result: "", sgpa: "", failPaperCode: "" }));
+
+                const aggregateResult = student.aggregateResult || {
+                  result: grandTotal.result || "PASS",
+                  cgpa: grandTotal.sgpa || "-",
+                  division: Number(grandTotal.sgpa) >= 6.5 ? "FIRST" : "SECOND"
+                };
+
+                return (
+                  <Box key={student.srno || student.enrolmentno || student.regno} sx={{ width: "100%" }}>
+                    {/* DEMOGRAPHICS TABLE */}
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "6.8pt", border: "1px solid #000" }}>
+                      <thead>
+                        <tr style={{ background: "#f9fafb" }}>
+                          <th style={{ ...trHead, width: "3%", textAlign: "center" }}>S.No</th>
+                          <th style={{ ...trHead, width: "15%", textAlign: "left", paddingLeft: 4 }}>Enrollment No / Roll No</th>
+                          <th style={{ ...trHead, width: "18%", textAlign: "left", paddingLeft: 4 }}>Name of Examinee</th>
+                          <th style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Father's Name</th>
+                          <th style={{ ...trHead, width: "15%", textAlign: "left", paddingLeft: 4 }}>Mother's Name</th>
+                          <th style={{ ...trHead, width: "5%", textAlign: "center" }}>Gender</th>
+                          <th style={{ ...trHead, width: "7%", textAlign: "center" }}>Status</th>
+                          <th style={{ ...trHead, width: "5%", textAlign: "center" }}>Batch</th>
+                          <th style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Branch Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{student.srno}</td>
+                          <td style={{ ...trCell, fontWeight: 800, paddingLeft: 4 }}>{fmt(student.enrolmentno || student.regno)}</td>
+                          <td style={{ ...trCell, fontWeight: 900, paddingLeft: 4 }}>{fmt(student.name)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.fathername)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.mothername)}</td>
+                          <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.gender)}</td>
+                          <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.status)}</td>
+                          <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.batch)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.branchname)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* COURSES AND RESULTS TABLE */}
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "6.5pt", border: "1px solid #000", borderTop: "none" }}>
+                      <thead>
+                        <tr style={{ background: "#f9fafb" }}>
+                          <th rowSpan={2} style={{ ...trHead, width: "6%" }}>Paper Code</th>
+                          <th rowSpan={2} style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Paper Name</th>
+                          <th rowSpan={2} style={{ ...trHead, width: "2.5%" }}>T/P</th>
+                          <th colSpan={3} style={trHead}>MaxMark(MA)</th>
+                          <th colSpan={8} style={trHead}>Grade / Marks Obtained(MO)</th>
+                          <th rowSpan={2} style={{ ...trHead, width: "6%" }}>Result</th>
+                          <th colSpan={9} style={trHead}>Previous Semester Result</th>
+                          <th colSpan={3} style={trHead}>Aggregate Result</th>
+                        </tr>
+                        <tr style={{ background: "#f9fafb" }}>
+                          <th style={{ ...trHead, width: "2.2%" }}>SE</th>
+                          <th style={{ ...trHead, width: "2.2%" }}>IA</th>
+                          <th style={{ ...trHead, width: "2.8%" }}>Credits Off.</th>
+                          <th style={{ ...trHead, width: "2.2%" }}>SE</th>
+                          <th style={{ ...trHead, width: "2.2%" }}>IA</th>
+                          <th style={{ ...trHead, width: "2.5%" }}>Total</th>
+                          <th style={{ ...trHead, width: "2.5%" }}>Per(%)</th>
+                          <th style={{ ...trHead, width: "2.2%" }}>Grade</th>
+                          <th style={{ ...trHead, width: "2%" }}>GP</th>
+                          <th style={{ ...trHead, width: "2.8%" }}>Credits Earned</th>
+                          <th style={{ ...trHead, width: "2.5%" }}>GPV</th>
+                          <th style={{ ...trHead, width: "4.5%" }}>Semester</th>
+                          {["SEM I", "SEM II", "SEM III", "SEM IV", "SEM V", "SEM VI", "SEM VII", "SEM VIII"].map((sem) => (
+                            <th key={sem} style={{ ...trHead, width: "3.2%" }}>{sem}</th>
+                          ))}
+                          <th style={{ ...trHead, width: "3%" }}>Result</th>
+                          <th style={{ ...trHead, width: "2.5%" }}>CGPA</th>
+                          <th style={{ ...trHead, width: "5%" }}>Division</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayCourses.map((c, cIdx) => (
+                          <tr key={cIdx}>
+                            {c.isDummy ? (
+                              <>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                                <td style={trCell}>&nbsp;</td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={{ ...trCell, fontWeight: 700 }}>{fmt(c.papercode)}</td>
+                                <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(c.papername)}</td>
+                                <td style={{ ...trCell, textAlign: "center", fontWeight: 700 }}>{fmt(c.type)}</td>
+                                <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.seMax)}</td>
+                                <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.iaMax)}</td>
+                                <td style={{ ...trCell, textAlign: "center" }}>{fmt(c.creditsOff)}</td>
+                                <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.seObtained)}</td>
+                                <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.iaObtained)}</td>
+                                <td style={{ ...trCell, textAlign: "right", fontWeight: 700 }}>{fmt(c.total)}</td>
+                                <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.percentage)}</td>
+                                <td style={{ ...trCell, textAlign: "center", fontWeight: 800 }}>{fmt(c.grade)}</td>
+                                <td style={{ ...trCell, textAlign: "center" }}>{fmt(c.gp)}</td>
+                                <td style={{ ...trCell, textAlign: "center" }}>{fmt(c.creditsEarned)}</td>
+                                <td style={{ ...trCell, textAlign: "right", fontWeight: 700 }}>{fmt(c.gpv)}</td>
+                              </>
+                            )}
+
+                            {/* CURRENT SEMESTER RESULT COLUMN (Row 0 spans all course rows) */}
+                            {cIdx === 0 && (
+                              <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap", width: "6%" }}>
+                                <div style={{ fontWeight: 800 }}>GPV: {grandTotal.gpv}</div>
+                                <div style={{ fontWeight: 800, marginTop: 2 }}>SGPA: {grandTotal.sgpa}</div>
+                                <div style={{ fontWeight: 900, marginTop: 3 }}>Result:</div>
+                                <div style={{ fontWeight: 900, color: grandTotal.result === "FAIL" ? "#c00" : "#000" }}>{grandTotal.result}</div>
+                              </td>
+                            )}
+
+                            {/* PREVIOUS SEMESTER RESULT (Rows 0-4 have historical data, rows >= 5 are blank) */}
+                            {cIdx === 0 && (
+                              <>
+                                <td style={{ ...trHead, textAlign: "center" }}>Exam</td>
+                                {semHistory.map((h, i) => (
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.exam) || "-"}</td>
+                                ))}
+                              </>
+                            )}
+                            {cIdx === 1 && (
+                              <>
+                                <td style={{ ...trHead, textAlign: "center" }}>Status</td>
+                                {semHistory.map((h, i) => (
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.status) || "-"}</td>
+                                ))}
+                              </>
+                            )}
+                            {cIdx === 2 && (
+                              <>
+                                <td style={{ ...trHead, textAlign: "center" }}>RESULT</td>
+                                {semHistory.map((h, i) => (
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontWeight: 800, fontSize: "6pt" }}>{fmt(h.result) || "-"}</td>
+                                ))}
+                              </>
+                            )}
+                            {cIdx === 3 && (
+                              <>
+                                <td style={{ ...trHead, textAlign: "center" }}>SGPA</td>
+                                {semHistory.map((h, i) => (
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.sgpa) || "-"}</td>
+                                ))}
+                              </>
+                            )}
+                            {cIdx === 4 && (
+                              <>
+                                <td style={{ ...trHead, textAlign: "center" }}>Fail Paper Code</td>
+                                {semHistory.map((h, i) => (
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5pt" }}>{fmt(h.failPaperCode) || "-"}</td>
+                                ))}
+                              </>
+                            )}
+                            {cIdx >= 5 && (
+                              <td colSpan={9} style={trCell}></td>
+                            )}
+
+                            {/* AGGREGATE RESULT (Row 0 spans all course rows) */}
+                            {cIdx === 0 && (
+                              <>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, width: "3%" }}>
+                                  {fmt(aggregateResult.result) || "-"}
+                                </td>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, width: "2.5%" }}>
+                                  {fmt(aggregateResult.cgpa) || "-"}
+                                </td>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, fontSize: "6pt", width: "5%" }}>
+                                  {fmt(aggregateResult.division) || "-"}
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+
+                        {/* GRAND TOTAL ROW */}
+                        <tr>
+                          <td colSpan={5} style={{ ...trCell, textAlign: "right", fontWeight: 900 }}>Grand Total:</td>
+                          <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{grandTotal.creditsOff}</td>
+                          <td colSpan={6} style={trCell}></td>
+                          <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{grandTotal.creditsEarned}</td>
+                          <td style={{ ...trCell, textAlign: "right", fontWeight: 900 }}>{grandTotal.gpv}</td>
+                          <td colSpan={13} style={{ ...trCell, fontWeight: 900, textAlign: "left", paddingLeft: 6 }}>
+                            Fail in Paper Code : {grandTotal.failPaperCode || ""}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {/* LAST PAGE GENDERWISE SUMMARY */}
+            {isLastPage && (
+              <Box sx={{ mt: 0.5, mb: 0.5 }}>
+                <table style={{ borderCollapse: "collapse", fontSize: "6.8pt", border: "1px solid #000", width: "220px" }}>
+                  <thead>
+                    <tr>
+                      <th colSpan={4} style={{ ...trHead, textAlign: "center", py: 0.2 }}>GenderWise Summary Count</th>
+                    </tr>
+                    <tr style={{ background: "#f9fafb" }}>
+                      <th style={{ ...trHead, width: "35%", textAlign: "left", pl: 0.5 }}></th>
+                      <th style={{ ...trHead, width: "20%", textAlign: "center" }}>M</th>
+                      <th style={{ ...trHead, width: "20%", textAlign: "center" }}>F</th>
+                      <th style={{ ...trHead, width: "25%", textAlign: "center" }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {["appeared", "passed", "failed"].map((key) => {
+                      const male = (summary.genderwise || []).find((row) => row.gender === "M")?.[key] ?? 0;
+                      const female = (summary.genderwise || []).find((row) => row.gender === "F")?.[key] ?? 0;
+                      const tot = (summary.total || {})[key] ?? (male + female);
+                      return (
+                        <tr key={key}>
+                          <td style={{ ...trCell, fontWeight: 800, textTransform: "capitalize", pl: 0.5 }}>{key}</td>
+                          <td style={{ ...trCell, textAlign: "center" }}>{male}</td>
+                          <td style={{ ...trCell, textAlign: "center" }}>{female}</td>
+                          <td style={{ ...trCell, textAlign: "center", fontWeight: 800 }}>{tot}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </Box>
+            )}
+
+            {/* PAGE FOOTER WITH SIGNATURES AND DYNAMIC PAGE NUMBER */}
+            <Box sx={{ mt: "auto", pt: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "7pt", fontWeight: 800 }}>
+              <Box sx={{ minWidth: 200, lineHeight: 1.4 }}>
+                <div>Signature of Tabulator: ___________________</div>
+                <div>Name of Tabulator: ________________________</div>
+                <div>Designation & Institute: __________________</div>
+              </Box>
+              <Box sx={{ minWidth: 200, lineHeight: 1.4 }}>
+                <div>Signature of Checker: _____________________</div>
+                <div>Name of Checker: __________________________</div>
+                <div>Designation & Institute: __________________</div>
+              </Box>
+              <Box sx={{ minWidth: 220, textAlign: "right", lineHeight: 1.4 }}>
+                <div>Assistant Registrar/Deputy Registrar: <strong>{pageIdx + 1}/{totalPages}</strong></div>
+              </Box>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
   );
 }
 
@@ -2474,7 +2691,62 @@ export function ExaminationModel2TrPage() {
           )}
         </Stack>
       </Box>
-      <style>{`#exam-model2-tr-print, #exam-model2-tr-print * { color: #000 !important; } @media print { @page { size: A4 landscape; margin: 6mm; } body * { visibility: hidden; } #exam-model2-tr-print, #exam-model2-tr-print * { visibility: visible; color: #000 !important; } #exam-model2-tr-print { position: absolute; left: 0; top: 0; width: 285mm !important; min-width: 285mm !important; border: none !important; box-shadow: none !important; padding: 0 !important; } #exam-model2-tr-print table { page-break-inside: auto; } #exam-model2-tr-print tr { page-break-inside: avoid; break-inside: avoid; } #exam-model2-tr-print thead { display: table-header-group; } .screen-only { display: none !important; } }`}</style>
+      <style>{`
+        #exam-model2-tr-bulk, #exam-model2-tr-bulk * { color: #000 !important; box-sizing: border-box; }
+        @media screen {
+          .tr-page {
+            background: #fff;
+            width: 297mm;
+            min-height: 200mm;
+            margin: 16px auto;
+            padding: 8mm 6mm;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+          }
+        }
+        @media print {
+          @page { size: A4 landscape; margin: 4mm 5mm; }
+          body * { visibility: hidden; }
+          #exam-model2-tr-bulk, #exam-model2-tr-bulk * { visibility: visible; color: #000 !important; }
+          #exam-model2-tr-bulk {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 287mm !important;
+            min-width: 287mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+          .tr-page {
+            width: 287mm !important;
+            min-height: 198mm !important;
+            max-height: 201mm !important;
+            height: 198mm !important;
+            margin: 0 !important;
+            padding: 2mm 3mm !important;
+            border: none !important;
+            box-shadow: none !important;
+            page-break-after: always !important;
+            break-after: page !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            overflow: hidden !important;
+          }
+          .tr-page:last-child {
+            page-break-after: auto !important;
+            break-after: auto !important;
+          }
+          .screen-only { display: none !important; }
+        }
+      `}</style>
     </MenuPageShell>
   );
 }
