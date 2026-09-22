@@ -33,6 +33,13 @@ const blankForm = {
   semester: "",
   course: "",
   coursecode: "",
+  assessmentcomponent: "",
+  componenttype: "Theory",
+  scoretype: "External",
+  assessmentgroup: "SEE",
+  assessmentgrouptype: "Theory",
+  maxmarks: 100,
+  credits: 0,
   examinername: "",
   examineremail: "",
   student: "",
@@ -54,6 +61,7 @@ export default function ConductExam2ExaminerAllotmentPage() {
   const [courses, setCourses] = useState([]);
   const [examiners, setExaminers] = useState([]);
   const [users, setUsers] = useState([]);
+  const [components, setComponents] = useState([]);
   const [students, setStudents] = useState([]);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(blankForm);
@@ -81,6 +89,7 @@ export default function ConductExam2ExaminerAllotmentPage() {
     setCourses(res.data?.courses || []);
     setExaminers(res.data?.examiners || []);
     setUsers(res.data?.users || []);
+    setComponents(res.data?.components || []);
   };
 
   const loadRows = async (nextFilters = filters) => {
@@ -206,19 +215,95 @@ export default function ConductExam2ExaminerAllotmentPage() {
     coursecode: uniq([...courses.map((row) => row.coursecode), ...rows.map((row) => row.coursecode)])
   }), [courses, rows]);
 
+  const courseComponents = useMemo(() => {
+    if (!form.coursecode) return [];
+    const matches = components.filter((c) => (
+      c.coursecode === form.coursecode &&
+      (!form.programcode || c.programcode === form.programcode)
+    ));
+    if (matches.length > 0) return matches;
+    return [
+      {
+        assessmentcomponent: "Theory Examination",
+        componenttype: "Theory",
+        scoretype: "External",
+        assessmentgroup: "SEE",
+        grouptype: "Theory",
+        maxmarks: 100,
+        credits: 4
+      },
+      {
+        assessmentcomponent: "Practical Examination",
+        componenttype: "Practical",
+        scoretype: "External",
+        assessmentgroup: "SEE",
+        grouptype: "Practical",
+        maxmarks: 50,
+        credits: 2
+      },
+      {
+        assessmentcomponent: "Viva Voce",
+        componenttype: "Viva",
+        scoretype: "External",
+        assessmentgroup: "SEE",
+        grouptype: "Viva",
+        maxmarks: 50,
+        credits: 1
+      }
+    ];
+  }, [components, form.coursecode, form.programcode]);
+
   const setCourseDetails = (coursecode) => {
     const selected = dropdowns.coursesList.find((row) => row.coursecode === coursecode);
+    const matches = components.filter((c) => (
+      c.coursecode === coursecode &&
+      (!form.programcode || c.programcode === form.programcode)
+    ));
+    const firstComp = matches[0] || {
+      assessmentcomponent: "Theory Examination",
+      componenttype: "Theory",
+      scoretype: "External",
+      assessmentgroup: "SEE",
+      grouptype: "Theory",
+      maxmarks: 100,
+      credits: 4
+    };
     setForm((prev) => ({
       ...prev,
       coursecode,
       course: selected?.course || "",
       type: selected?.type || "",
       subject: selected?.subject || "",
-      semester: selected?.semester || ""
+      semester: selected?.semester || "",
+      assessmentcomponent: firstComp.assessmentcomponent,
+      componenttype: firstComp.componenttype || "Theory",
+      scoretype: firstComp.scoretype || "External",
+      assessmentgroup: firstComp.assessmentgroup || "SEE",
+      assessmentgrouptype: firstComp.grouptype || firstComp.assessmentgrouptype || "Theory",
+      maxmarks: Number(firstComp.maxmarks ?? firstComp.marks) || 100,
+      credits: Number(firstComp.credits ?? firstComp.credit) || 0
     }));
     setStudents([]);
     setSelectedExaminers([]);
     setPapersPerExaminer("");
+  };
+
+  const handleComponentSelect = (compName) => {
+    const found = courseComponents.find((c) => c.assessmentcomponent === compName);
+    if (found) {
+      setForm((prev) => ({
+        ...prev,
+        assessmentcomponent: found.assessmentcomponent,
+        componenttype: found.componenttype || "Theory",
+        scoretype: found.scoretype || "External",
+        assessmentgroup: found.assessmentgroup || "SEE",
+        assessmentgrouptype: found.grouptype || found.assessmentgrouptype || "Theory",
+        maxmarks: Number(found.maxmarks ?? found.marks) || 100,
+        credits: Number(found.credits ?? found.credit) || 0
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, assessmentcomponent: compName }));
+    }
   };
 
   const loadPresentStudents = async () => {
@@ -277,10 +362,44 @@ export default function ConductExam2ExaminerAllotmentPage() {
     try {
       setSaving(true);
       setError("");
-      await ep1.post("/api/v2/conductexam2/examiner-allotments", { ...form, id: editId, colid: global1.colid, user: global1.user });
+      await ep1.post("/api/v2/conductexam2/examiner-allotments", {
+        ...form,
+        id: editId,
+        colid: global1.colid,
+        user: global1.user,
+        assessmentcomponent: form.assessmentcomponent || "Theory Examination",
+        componenttype: form.componenttype || "Theory",
+        scoretype: form.scoretype || "External",
+        assessmentgroup: form.assessmentgroup || "SEE",
+        assessmentgrouptype: form.assessmentgrouptype || "Theory",
+        maxmarks: form.maxmarks || 100,
+        credits: form.credits || 0
+      });
       setMessage(editId ? "Allotment updated." : "Allotment saved.");
       setEditId("");
-      setForm((prev) => ({ ...blankForm, academicyear: prev.academicyear, exam: prev.exam, examcode: prev.examcode, regulation: prev.regulation, program: prev.program, programcode: prev.programcode, type: prev.type, subject: prev.subject, semester: prev.semester, course: prev.course, coursecode: prev.coursecode, startdate: prev.startdate, enddate: prev.enddate }));
+      setForm((prev) => ({
+        ...blankForm,
+        academicyear: prev.academicyear,
+        exam: prev.exam,
+        examcode: prev.examcode,
+        regulation: prev.regulation,
+        program: prev.program,
+        programcode: prev.programcode,
+        type: prev.type,
+        subject: prev.subject,
+        semester: prev.semester,
+        course: prev.course,
+        coursecode: prev.coursecode,
+        assessmentcomponent: prev.assessmentcomponent,
+        componenttype: prev.componenttype,
+        scoretype: prev.scoretype,
+        assessmentgroup: prev.assessmentgroup,
+        assessmentgrouptype: prev.assessmentgrouptype,
+        maxmarks: prev.maxmarks,
+        credits: prev.credits,
+        startdate: prev.startdate,
+        enddate: prev.enddate
+      }));
       await loadRows();
     } catch (err) {
       setError(err.response?.data?.message || "Unable to save allotment.");
@@ -311,7 +430,14 @@ export default function ConductExam2ExaminerAllotmentPage() {
         ...form,
         colid: global1.colid,
         user: global1.user,
-        examineremails: selectedExaminers.map((row) => row.examineremail)
+        examineremails: selectedExaminers.map((row) => row.examineremail),
+        assessmentcomponent: form.assessmentcomponent || "Theory Examination",
+        componenttype: form.componenttype || "Theory",
+        scoretype: form.scoretype || "External",
+        assessmentgroup: form.assessmentgroup || "SEE",
+        assessmentgrouptype: form.assessmentgrouptype || "Theory",
+        maxmarks: form.maxmarks || 100,
+        credits: form.credits || 0
       };
       if (useLimit) payload.papersperexaminer = paperLimit;
       const res = await ep1.post("/api/v2/conductexam2/examiner-allotments-random", payload);
@@ -408,6 +534,11 @@ export default function ConductExam2ExaminerAllotmentPage() {
       semester: first.semester || "1",
       course: first.course || "Financial Accounting",
       coursecode: first.coursecode || "BCOM101",
+      assessmentcomponent: "Theory Examination",
+      componenttype: "Theory",
+      scoretype: "External",
+      maxmarks: 100,
+      credits: 4,
       examinername: "Dr. Faculty",
       examineremail: "faculty@example.com",
       student: "John Doe",
@@ -464,6 +595,9 @@ export default function ConductExam2ExaminerAllotmentPage() {
     { field: "programcode", headerName: "Program Code", width: 140 },
     { field: "course", headerName: "Course", minWidth: 170, flex: 1 },
     { field: "coursecode", headerName: "Course Code", width: 140 },
+    { field: "assessmentcomponent", headerName: "Component", width: 170 },
+    { field: "componenttype", headerName: "Type", width: 120 },
+    { field: "maxmarks", headerName: "Max Marks", width: 110 },
     { field: "examinername", headerName: "Examiner", width: 180 },
     { field: "examineremail", headerName: "Examiner Email", width: 220 },
     { field: "student", headerName: "Student", minWidth: 170, flex: 1 },
@@ -528,13 +662,29 @@ export default function ConductExam2ExaminerAllotmentPage() {
               setForm((prev) => ({ ...blankForm, academicyear: prev.academicyear, examcode: e.target.value, exam: exam?.exam || "" }));
             }}>{dropdowns.exams.map((item) => <MenuItem key={item.examcode} value={item.examcode}>{item.exam} ({item.examcode})</MenuItem>)}</TextField></Grid>
             <Grid item xs={12} md={2}><TextField select fullWidth label="Regulation" value={form.regulation} onChange={(e) => setForm((prev) => ({ ...prev, regulation: e.target.value, program: "", programcode: "", course: "", coursecode: "" }))}>{dropdowns.regulations.map((item) => <MenuItem key={item} value={item}>{item}</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={3}><TextField select fullWidth label="Program" value={form.programcode} onChange={(e) => {
+            <Grid item xs={12} md={2.5}><TextField select fullWidth label="Program" value={form.programcode} onChange={(e) => {
               const program = dropdowns.programs.find((item) => item.programcode === e.target.value);
               setForm((prev) => ({ ...prev, programcode: e.target.value, program: program?.program || "", course: "", coursecode: "" }));
             }}>{dropdowns.programs.map((item) => <MenuItem key={item.programcode} value={item.programcode}>{item.program} ({item.programcode})</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={2}><TextField select fullWidth label="Course" value={form.coursecode} onChange={(e) => setCourseDetails(e.target.value)}>{dropdowns.coursesList.map((item) => <MenuItem key={item.coursecode} value={item.coursecode}>{courseLabel(item)}</MenuItem>)}</TextField></Grid>
-            <Grid item xs={12} md={3}><Button fullWidth variant="outlined" onClick={loadPresentStudents} disabled={loadingStudents} sx={{ height: 56 }}>{loadingStudents ? "Loading..." : `Load Present Students${students.length ? ` (${students.length})` : ""}`}</Button></Grid>
-            <Grid item xs={12} md={2.5}>
+            <Grid item xs={12} md={2.5}><TextField select fullWidth label="Course" value={form.coursecode} onChange={(e) => setCourseDetails(e.target.value)}>{dropdowns.coursesList.map((item) => <MenuItem key={item.coursecode} value={item.coursecode}>{courseLabel(item)}</MenuItem>)}</TextField></Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                select
+                fullWidth
+                label="Component"
+                value={form.assessmentcomponent || (courseComponents[0]?.assessmentcomponent || "")}
+                onChange={(e) => handleComponentSelect(e.target.value)}
+                helperText={`Type: ${form.componenttype || "Theory"} | Max: ${form.maxmarks || 100}`}
+              >
+                {courseComponents.map((c) => (
+                  <MenuItem key={c.assessmentcomponent} value={c.assessmentcomponent}>
+                    {c.assessmentcomponent} ({c.componenttype || "Theory"}, {c.maxmarks || 100}M)
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={2.5}><Button fullWidth variant="outlined" onClick={loadPresentStudents} disabled={loadingStudents} sx={{ height: 56 }}>{loadingStudents ? "Loading..." : `Load Present Students${students.length ? ` (${students.length})` : ""}`}</Button></Grid>
+            <Grid item xs={12} md={2}>
               <TextField
                 fullWidth
                 required
@@ -545,7 +695,7 @@ export default function ConductExam2ExaminerAllotmentPage() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={2.5}>
+            <Grid item xs={12} md={2}>
               <TextField
                 fullWidth
                 required
@@ -556,7 +706,16 @@ export default function ConductExam2ExaminerAllotmentPage() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={2.5}>
+              <TextField
+                fullWidth
+                label="Max Marks"
+                type="number"
+                value={form.maxmarks}
+                onChange={(e) => setForm((prev) => ({ ...prev, maxmarks: Number(e.target.value) || 0 }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={5}>
               <Autocomplete
                 options={availableExaminers}
                 groupBy={(option) => option.category}
@@ -566,7 +725,7 @@ export default function ConductExam2ExaminerAllotmentPage() {
                 renderInput={(params) => <TextField {...params} label="Examiner for Manual Entry" />}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={5}>
               <Autocomplete options={students} getOptionLabel={(option) => `${option.student || ""}${option.regno ? ` (${option.regno})` : ""}`} onChange={(event, value) => selectStudent(value)} renderInput={(params) => <TextField {...params} label="Present Student for Manual Entry" />} />
             </Grid>
             <Grid item xs={12} md={2}><Button fullWidth variant="outlined" onClick={saveAllotment} disabled={saving} sx={{ height: 56 }}>{saving ? "Saving..." : editId ? "Update" : "Save Manual"}</Button></Grid>
@@ -577,7 +736,9 @@ export default function ConductExam2ExaminerAllotmentPage() {
           <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={1.5} sx={{ mb: 2 }}>
             <Box>
               <Typography variant="h6" fontWeight={900}>Random allocation by examiner</Typography>
-              <Typography color="text.secondary">Select examiners with checkbox, then allocate all present students or apply a per-examiner paper limit.</Typography>
+              <Typography color="text.secondary">
+                Select examiners with checkbox, then allocate present students for component: <strong>{form.assessmentcomponent || "Theory Examination"}</strong> ({form.componenttype || "Theory"}, {form.maxmarks || 100} Marks).
+              </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary">{students.length} present students loaded</Typography>
           </Stack>

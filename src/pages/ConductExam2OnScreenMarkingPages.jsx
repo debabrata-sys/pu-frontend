@@ -922,6 +922,7 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
           paperid: course.paperid,
           examcode: course.examcode,
           coursecode: course.coursecode,
+          assessmentcomponent: course.assessmentcomponent || undefined,
           valuationtype: activeValType,
           regno: targetRegno || undefined
         }
@@ -1177,12 +1178,21 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
         comment: commentMap[q.questionid] || ""
       }));
 
+      const activeComponent = selectedCourse?.assessmentcomponent || selectedStudent?.assessmentcomponent || "Theory Examination";
+      const activeComponentType = selectedCourse?.componenttype || selectedStudent?.componenttype || "Theory";
+      const activeScoreType = selectedCourse?.scoretype || selectedStudent?.scoretype || "External";
+      const activeAssessmentGroup = selectedCourse?.assessmentgroup || selectedStudent?.assessmentgroup || "SEE";
+      const activeMaxMarks = selectedCourse?.maxmarks || selectedStudent?.maxmarks || 100;
+      const activeCredits = selectedCourse?.credits || selectedStudent?.credits || 0;
+
       await ep1.post("/api/v2/conductexam2/onscreen-marks-save", {
         colid: global1.colid,
         paperid: selectedCourse.paperid,
         student: selectedStudent,
         marks: marksPayload,
         valuationtype: valuationType,
+        assessmentcomponent: activeComponent,
+        componenttype: activeComponentType,
         verifiedpages: Array.from(verifiedPages),
         pagestamps: pageStamps,
         user: examineremail
@@ -1196,6 +1206,12 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
         examcode: selectedCourse?.examcode || paper?.examcode,
         coursecode: selectedCourse?.coursecode || paper?.coursecode,
         academicyear: selectedCourse?.academicyear || paper?.academicyear,
+        assessmentcomponent: activeComponent,
+        componenttype: activeComponentType,
+        scoretype: activeScoreType,
+        assessmentgroup: activeAssessmentGroup,
+        maxmarks: activeMaxMarks,
+        credits: activeCredits,
         valuationtype: valuationType,
         evaluationTimeSeconds: timerSecondsRef.current || 0,
         verifiedPages: Array.from(verifiedPages),
@@ -1218,6 +1234,7 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
             paperid: selectedCourse.paperid,
             examcode: selectedCourse?.examcode || paper?.examcode,
             coursecode: selectedCourse?.coursecode || paper?.coursecode,
+            assessmentcomponent: activeComponent,
             valuationtype: valuationType
           }
         });
@@ -1423,6 +1440,21 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {params.row.exam} ({params.row.examcode}) • Regulation: {params.row.regulation}
+          </Typography>
+        </Box>
+      )
+    },
+    {
+      field: "assessmentcomponent",
+      headerName: "Component",
+      width: 190,
+      renderCell: (params) => (
+        <Box>
+          <Typography fontWeight={700} fontSize="0.85rem">
+            {params.row.assessmentcomponent || "Theory Examination"}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {params.row.componenttype || "Theory"} • Max: {params.row.maxmarks || 100}M
           </Typography>
         </Box>
       )
@@ -1721,6 +1753,18 @@ export function ConductExam2OnScreenMarkingPage({ isReevaluation = false }) {
                   <Typography variant="subtitle1" fontWeight={900} color="#0f172a">
                     {selectedCourse?.course} ({selectedCourse?.coursecode})
                   </Typography>
+                  <Chip
+                    label={selectedCourse?.assessmentcomponent || selectedStudent?.assessmentcomponent || "Theory Examination"}
+                    size="small"
+                    color="primary"
+                    sx={{ fontWeight: 800, height: 22, fontSize: "0.75rem" }}
+                  />
+                  <Chip
+                    label={`${selectedCourse?.componenttype || selectedStudent?.componenttype || "Theory"} • Max: ${selectedCourse?.maxmarks || selectedStudent?.maxmarks || 100}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, height: 22, fontSize: "0.75rem" }}
+                  />
                   {selectedCourse?.isNew && (
                     <Chip label="NEW" size="small" color="error" sx={{ fontWeight: 800, height: 20, fontSize: "0.65rem" }} />
                   )}
