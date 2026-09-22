@@ -7,12 +7,15 @@ import {
   Avatar,
   Box,
   Button,
+  ButtonGroup,
   Card,
   CardContent,
   Checkbox,
+  Chip,
   CircularProgress,
   FormControlLabel,
   Grid,
+  IconButton,
   Link,
   ListItemText,
   MenuItem,
@@ -20,16 +23,24 @@ import {
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography
 } from "@mui/material";
 import { DataGrid, GridActionsCellItem, GridToolbar } from "@mui/x-data-grid";
+import CropLandscapeIcon from "@mui/icons-material/CropLandscape";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import FitScreenIcon from "@mui/icons-material/FitScreen";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import PrintIcon from "@mui/icons-material/Print";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SaveIcon from "@mui/icons-material/Save";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import MenuPageShell from "./MenuPageShell";
 import ep1 from "../api/ep1";
 import global1 from "./global1";
@@ -2271,6 +2282,126 @@ export function ExaminationModel3AprMarksheetSignaturePage() {
   return <ExaminationModel3AprMarksheetPageBase withRegistrarSignature pageTitle="Annual Performance Report Signature" pageSubtitle="Copy of Annual Performance Report with selectable Registrar signature." />;
 }
 
+function printLandscape(elementId, pageIdx = null) {
+  const container = document.getElementById(elementId);
+  if (!container) {
+    window.print();
+    return;
+  }
+
+  const iframeId = "tr-print-iframe";
+  let iframe = document.getElementById(iframeId);
+  if (iframe) {
+    iframe.remove();
+  }
+  iframe = document.createElement("iframe");
+  iframe.id = iframeId;
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+
+  let contentHtml = "";
+  if (pageIdx !== null) {
+    const pages = container.querySelectorAll(".tr-page");
+    if (pages[pageIdx]) {
+      contentHtml = pages[pageIdx].outerHTML;
+    } else {
+      contentHtml = container.innerHTML;
+    }
+  } else {
+    const clone = container.cloneNode(true);
+    clone.querySelectorAll(".tr-page").forEach((p) => {
+      p.style.display = "flex";
+      p.classList.remove("preview-hidden");
+      p.classList.add("preview-active");
+    });
+    contentHtml = clone.innerHTML;
+  }
+
+  doc.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Tabulation Register</title>
+        <style>
+          @page {
+            size: 297mm 210mm landscape;
+            margin: 4mm 5mm;
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+            color: #000 !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            width: 287mm !important;
+          }
+          .tr-page {
+            width: 287mm !important;
+            max-width: 287mm !important;
+            height: 200mm !important;
+            max-height: 200mm !important;
+            margin: 0 auto !important;
+            padding: 2mm 3mm !important;
+            box-sizing: border-box !important;
+            page-break-before: always !important;
+            break-before: page !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            background: #fff !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .tr-page:first-of-type {
+            page-break-before: avoid !important;
+            break-before: avoid !important;
+          }
+          table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 100%;
+          }
+          th, td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .screen-only {
+            display: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        ${contentHtml}
+      </body>
+    </html>
+  `);
+  doc.close();
+
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  }, 350);
+}
+
 const trCell = { border: "1px solid #000", padding: "1.5px 2px", verticalAlign: "top", lineHeight: 1.15, fontSize: "6.5pt", color: "#000" };
 const trHead = { ...trCell, fontWeight: 900, textAlign: "center", background: "#f3f4f6" };
 const fmt = (value) => (value === null || value === undefined || value === "" ? "" : value);
@@ -2295,7 +2426,7 @@ const toRomanSem = (val) => {
   return map[s] || (s.startsWith("SEM") ? s : `${s}`);
 };
 
-function ExamModel3TrPrint({ report }) {
+function ExamModel3TrPrint({ report, activePageIdx = null }) {
   const institution = report?.institution || {};
   const filters = report?.filters || {};
   const students = report?.students || [];
@@ -2315,9 +2446,16 @@ function ExamModel3TrPrint({ report }) {
     <Box id="exam-model3-tr-bulk">
       {studentChunks.map((pageStudents, pageIdx) => {
         const isLastPage = pageIdx === totalPages - 1;
+        const isVisibleInPreview = activePageIdx === null || activePageIdx === pageIdx;
 
         return (
-          <Box key={pageIdx} className="tr-page">
+          <Box
+            key={pageIdx}
+            className={`tr-page ${isVisibleInPreview ? "preview-active" : "preview-hidden"}`}
+            sx={{
+              display: isVisibleInPreview ? "flex" : "none"
+            }}
+          >
             {/* INSTITUTIONAL HEADER */}
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5, borderBottom: "1.5px solid #000", pb: 0.5 }}>
               <Box sx={{ width: 60, display: "flex", justifyContent: "flex-start" }}>
@@ -2372,67 +2510,107 @@ function ExamModel3TrPrint({ report }) {
                 return (
                   <Box key={student.srno || student.enrolmentno || student.regno} sx={{ width: "100%" }}>
                     {/* DEMOGRAPHICS TABLE */}
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "6.8pt", border: "1px solid #000" }}>
+                    <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "6.8pt", border: "1px solid #000" }}>
+                      <colgroup>
+                        <col style={{ width: "3%" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "18%" }} />
+                        <col style={{ width: "16%" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "5%" }} />
+                        <col style={{ width: "7%" }} />
+                        <col style={{ width: "5%" }} />
+                        <col style={{ width: "16%" }} />
+                      </colgroup>
                       <thead>
                         <tr style={{ background: "#f9fafb" }}>
-                          <th style={{ ...trHead, width: "3%", textAlign: "center" }}>S.No</th>
-                          <th style={{ ...trHead, width: "15%", textAlign: "left", paddingLeft: 4 }}>Enrollment No / Roll No</th>
-                          <th style={{ ...trHead, width: "18%", textAlign: "left", paddingLeft: 4 }}>Name of Examinee</th>
-                          <th style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Father's Name</th>
-                          <th style={{ ...trHead, width: "15%", textAlign: "left", paddingLeft: 4 }}>Mother's Name</th>
-                          <th style={{ ...trHead, width: "5%", textAlign: "center" }}>Gender</th>
-                          <th style={{ ...trHead, width: "7%", textAlign: "center" }}>Status</th>
-                          <th style={{ ...trHead, width: "5%", textAlign: "center" }}>Batch</th>
-                          <th style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Branch Name</th>
+                          <th style={{ ...trHead, textAlign: "center" }}>S.No</th>
+                          <th style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Enrollment No / Roll No</th>
+                          <th style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Name of Examinee</th>
+                          <th style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Father's Name</th>
+                          <th style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Mother's Name</th>
+                          <th style={{ ...trHead, textAlign: "center" }}>Gender</th>
+                          <th style={{ ...trHead, textAlign: "center" }}>Status</th>
+                          <th style={{ ...trHead, textAlign: "center" }}>Batch</th>
+                          <th style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Branch Name</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
                           <td style={{ ...trCell, textAlign: "center", fontWeight: 900 }}>{student.srno}</td>
-                          <td style={{ ...trCell, fontWeight: 800, paddingLeft: 4 }}>{fmt(student.enrolmentno || student.regno)}</td>
-                          <td style={{ ...trCell, fontWeight: 900, paddingLeft: 4 }}>{fmt(student.name)}</td>
-                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.fathername)}</td>
-                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.mothername)}</td>
+                          <td style={{ ...trCell, fontWeight: 800, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(student.enrolmentno || student.regno)}</td>
+                          <td style={{ ...trCell, fontWeight: 900, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(student.name)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(student.fathername)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(student.mothername)}</td>
                           <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.gender)}</td>
                           <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.status)}</td>
                           <td style={{ ...trCell, textAlign: "center" }}>{fmt(student.batch)}</td>
-                          <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(student.branchname)}</td>
+                          <td style={{ ...trCell, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(student.branchname)}</td>
                         </tr>
                       </tbody>
                     </table>
 
                     {/* COURSES AND RESULTS TABLE */}
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "6.5pt", border: "1px solid #000", borderTop: "none" }}>
+                    <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontSize: "6.5pt", border: "1px solid #000", borderTop: "none" }}>
+                      <colgroup>
+                        <col style={{ width: "5.5%" }} />
+                        <col style={{ width: "17%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2.8%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2.5%" }} />
+                        <col style={{ width: "2.5%" }} />
+                        <col style={{ width: "2.2%" }} />
+                        <col style={{ width: "2%" }} />
+                        <col style={{ width: "2.8%" }} />
+                        <col style={{ width: "2.5%" }} />
+                        <col style={{ width: "5.5%" }} />
+                        <col style={{ width: "5%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "3.3%" }} />
+                        <col style={{ width: "2.8%" }} />
+                        <col style={{ width: "2.5%" }} />
+                        <col style={{ width: "5%" }} />
+                      </colgroup>
                       <thead>
                         <tr style={{ background: "#f9fafb" }}>
-                          <th rowSpan={2} style={{ ...trHead, width: "6%" }}>Paper Code</th>
-                          <th rowSpan={2} style={{ ...trHead, width: "16%", textAlign: "left", paddingLeft: 4 }}>Paper Name</th>
-                          <th rowSpan={2} style={{ ...trHead, width: "2.5%" }}>T/P</th>
+                          <th rowSpan={2} style={trHead}>Paper Code</th>
+                          <th rowSpan={2} style={{ ...trHead, textAlign: "left", paddingLeft: 4 }}>Paper Name</th>
+                          <th rowSpan={2} style={trHead}>T/P</th>
                           <th colSpan={3} style={trHead}>MaxMark(MA)</th>
                           <th colSpan={8} style={trHead}>Grade / Marks Obtained(MO)</th>
-                          <th rowSpan={2} style={{ ...trHead, width: "6%" }}>Result</th>
+                          <th rowSpan={2} style={trHead}>Result</th>
                           <th colSpan={9} style={trHead}>Previous Semester Result</th>
                           <th colSpan={3} style={trHead}>Aggregate Result</th>
                         </tr>
                         <tr style={{ background: "#f9fafb" }}>
-                          <th style={{ ...trHead, width: "2.2%" }}>SE</th>
-                          <th style={{ ...trHead, width: "2.2%" }}>IA</th>
-                          <th style={{ ...trHead, width: "2.8%" }}>Credits Off.</th>
-                          <th style={{ ...trHead, width: "2.2%" }}>SE</th>
-                          <th style={{ ...trHead, width: "2.2%" }}>IA</th>
-                          <th style={{ ...trHead, width: "2.5%" }}>Total</th>
-                          <th style={{ ...trHead, width: "2.5%" }}>Per(%)</th>
-                          <th style={{ ...trHead, width: "2.2%" }}>Grade</th>
-                          <th style={{ ...trHead, width: "2%" }}>GP</th>
-                          <th style={{ ...trHead, width: "2.8%" }}>Credits Earned</th>
-                          <th style={{ ...trHead, width: "2.5%" }}>GPV</th>
-                          <th style={{ ...trHead, width: "4.5%" }}>Semester</th>
+                          <th style={trHead}>SE</th>
+                          <th style={trHead}>IA</th>
+                          <th style={trHead}>Credits Off.</th>
+                          <th style={trHead}>SE</th>
+                          <th style={trHead}>IA</th>
+                          <th style={trHead}>Total</th>
+                          <th style={trHead}>Per(%)</th>
+                          <th style={trHead}>Grade</th>
+                          <th style={trHead}>GP</th>
+                          <th style={trHead}>Credits Earned</th>
+                          <th style={trHead}>GPV</th>
+                          <th style={trHead}>Semester</th>
                           {["SEM I", "SEM II", "SEM III", "SEM IV", "SEM V", "SEM VI", "SEM VII", "SEM VIII"].map((sem) => (
-                            <th key={sem} style={{ ...trHead, width: "3.2%" }}>{sem}</th>
+                            <th key={sem} style={trHead}>{sem}</th>
                           ))}
-                          <th style={{ ...trHead, width: "3%" }}>Result</th>
-                          <th style={{ ...trHead, width: "2.5%" }}>CGPA</th>
-                          <th style={{ ...trHead, width: "5%" }}>Division</th>
+                          <th style={trHead}>Result</th>
+                          <th style={trHead}>CGPA</th>
+                          <th style={trHead}>Division</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2457,8 +2635,8 @@ function ExamModel3TrPrint({ report }) {
                               </>
                             ) : (
                               <>
-                                <td style={{ ...trCell, fontWeight: 700 }}>{fmt(c.papercode)}</td>
-                                <td style={{ ...trCell, paddingLeft: 4 }}>{fmt(c.papername)}</td>
+                                <td style={{ ...trCell, fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(c.papercode)}</td>
+                                <td style={{ ...trCell, paddingLeft: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(c.papername)}</td>
                                 <td style={{ ...trCell, textAlign: "center", fontWeight: 700 }}>{fmt(c.type)}</td>
                                 <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.seMax)}</td>
                                 <td style={{ ...trCell, textAlign: "right" }}>{fmt(c.iaMax)}</td>
@@ -2476,7 +2654,7 @@ function ExamModel3TrPrint({ report }) {
 
                             {/* CURRENT SEMESTER RESULT COLUMN (Row 0 spans all course rows) */}
                             {cIdx === 0 && (
-                              <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap", width: "6%" }}>
+                              <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
                                 <div style={{ fontWeight: 800 }}>GPV: {grandTotal.gpv}</div>
                                 <div style={{ fontWeight: 800, marginTop: 2 }}>SGPA: {grandTotal.sgpa}</div>
                                 <div style={{ fontWeight: 900, marginTop: 3 }}>Result:</div>
@@ -2489,7 +2667,7 @@ function ExamModel3TrPrint({ report }) {
                               <>
                                 <td style={{ ...trHead, textAlign: "center" }}>Exam</td>
                                 {semHistory.map((h, i) => (
-                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.exam) || "-"}</td>
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5.5pt", whiteSpace: "nowrap" }}>{fmt(h.exam) || "-"}</td>
                                 ))}
                               </>
                             )}
@@ -2497,7 +2675,7 @@ function ExamModel3TrPrint({ report }) {
                               <>
                                 <td style={{ ...trHead, textAlign: "center" }}>Status</td>
                                 {semHistory.map((h, i) => (
-                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.status) || "-"}</td>
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5.5pt", whiteSpace: "nowrap" }}>{fmt(h.status) || "-"}</td>
                                 ))}
                               </>
                             )}
@@ -2505,7 +2683,7 @@ function ExamModel3TrPrint({ report }) {
                               <>
                                 <td style={{ ...trHead, textAlign: "center" }}>RESULT</td>
                                 {semHistory.map((h, i) => (
-                                  <td key={i} style={{ ...trCell, textAlign: "center", fontWeight: 800, fontSize: "6pt" }}>{fmt(h.result) || "-"}</td>
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontWeight: 800, fontSize: "5.5pt", whiteSpace: "nowrap" }}>{fmt(h.result) || "-"}</td>
                                 ))}
                               </>
                             )}
@@ -2513,7 +2691,7 @@ function ExamModel3TrPrint({ report }) {
                               <>
                                 <td style={{ ...trHead, textAlign: "center" }}>SGPA</td>
                                 {semHistory.map((h, i) => (
-                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "6pt" }}>{fmt(h.sgpa) || "-"}</td>
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5.5pt", whiteSpace: "nowrap" }}>{fmt(h.sgpa) || "-"}</td>
                                 ))}
                               </>
                             )}
@@ -2521,7 +2699,7 @@ function ExamModel3TrPrint({ report }) {
                               <>
                                 <td style={{ ...trHead, textAlign: "center" }}>Fail Paper Code</td>
                                 {semHistory.map((h, i) => (
-                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5pt" }}>{fmt(h.failPaperCode) || "-"}</td>
+                                  <td key={i} style={{ ...trCell, textAlign: "center", fontSize: "5pt", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fmt(h.failPaperCode) || "-"}</td>
                                 ))}
                               </>
                             )}
@@ -2532,13 +2710,13 @@ function ExamModel3TrPrint({ report }) {
                             {/* AGGREGATE RESULT (Row 0 spans all course rows) */}
                             {cIdx === 0 && (
                               <>
-                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, width: "3%" }}>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800 }}>
                                   {fmt(aggregateResult.result) || "-"}
                                 </td>
-                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, width: "2.5%" }}>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800 }}>
                                   {fmt(aggregateResult.cgpa) || "-"}
                                 </td>
-                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, fontSize: "6pt", width: "5%" }}>
+                                <td rowSpan={displayCourses.length} style={{ ...trCell, textAlign: "center", verticalAlign: "middle", fontWeight: 800, fontSize: "6pt" }}>
                                   {fmt(aggregateResult.division) || "-"}
                                 </td>
                               </>
@@ -2567,7 +2745,7 @@ function ExamModel3TrPrint({ report }) {
             {/* LAST PAGE GENDERWISE SUMMARY */}
             {isLastPage && (
               <Box sx={{ mt: 0.5, mb: 0.5 }}>
-                <table style={{ borderCollapse: "collapse", fontSize: "6.8pt", border: "1px solid #000", width: "220px" }}>
+                <table style={{ borderCollapse: "collapse", fontSize: "6.5pt", border: "1px solid #000", width: "230px" }}>
                   <thead>
                     <tr>
                       <th colSpan={4} style={{ ...trHead, textAlign: "center", py: 0.2 }}>GenderWise Summary Count</th>
@@ -2627,20 +2805,46 @@ export function ExaminationModel3TrPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [zoom, setZoom] = useState(0.9);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState("all");
+  const workspaceRef = React.useRef(null);
+
+  const totalStudents = report?.students?.length || 0;
+  const totalPages = Math.max(1, Math.ceil(totalStudents / 2));
 
   const loadReport = async () => {
     try {
       setLoading(true);
       setError("");
       setReport(null);
+      setCurrentPage(1);
       const res = await ep1.get("/api/v2/examination-model3/tr-report", { params: { colid: global1.colid, ...filters } });
       setReport(res.data);
+      if (workspaceRef.current) {
+        const availableWidth = workspaceRef.current.clientWidth - 48;
+        if (availableWidth > 400) {
+          const fitZ = Math.min(1.0, Math.max(0.45, Math.round((availableWidth / 1123) * 100) / 100));
+          setZoom(fitZ);
+        }
+      }
     } catch (err) {
       setError(msg(err, "Unable to generate TR"));
     } finally {
       setLoading(false);
     }
   };
+
+  const handleFitWidth = () => {
+    if (workspaceRef.current) {
+      const availableWidth = workspaceRef.current.clientWidth - 48;
+      const fitZ = Math.min(1.2, Math.max(0.4, Math.round((availableWidth / 1123) * 100) / 100));
+      setZoom(fitZ);
+    }
+  };
+
+  const handleZoomIn = () => setZoom((z) => Math.min(1.5, Math.round((z + 0.1) * 10) / 10));
+  const handleZoomOut = () => setZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 10) / 10));
 
   const setField = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value || "" }));
@@ -2673,7 +2877,7 @@ export function ExaminationModel3TrPage() {
               <Grid item xs={12}>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Button variant="contained" disabled={loading} onClick={loadReport}>{loading ? <><CircularProgress size={18} sx={{ mr: 1 }} />Generating...</> : "Generate TR"}</Button>
-                  <Button variant="outlined" startIcon={<PrintIcon />} disabled={!report} onClick={() => window.print()}>Print</Button>
+                  <Button variant="outlined" startIcon={<PrintIcon />} disabled={!report} onClick={() => printLandscape("exam-model3-tr-bulk")}>Print Landscape (A4)</Button>
                 </Stack>
               </Grid>
             </Grid>
@@ -2684,10 +2888,195 @@ export function ExaminationModel3TrPage() {
               Missing source mappings: {report.missingMappings.join(" ")}
             </Alert>
           )}
+
           {report && (
-            <Box sx={{ overflow: "auto", pb: 2 }}>
-              <ExamModel3TrPrint report={report} />
-            </Box>
+            <Stack spacing={1.5} className="screen-only">
+              {/* LANDSCAPE PREVIEW TOOLBAR */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2.5,
+                  border: "1px solid #d1d5db",
+                  bgcolor: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1.5
+                }}
+              >
+                {/* Left: Metadata chips */}
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Chip
+                    icon={<CropLandscapeIcon sx={{ fontSize: "16px !important" }} />}
+                    label="A4 Landscape (297 × 210 mm)"
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 700 }}
+                  />
+                  <Chip
+                    label="2 Students / Page"
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                  />
+                  <Chip
+                    label={`Total Pages: ${totalPages}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                  />
+                  <Chip
+                    label={`Total Students: ${totalStudents}`}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Stack>
+
+                {/* Center: View mode & Pagination */}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <ButtonGroup size="small" variant="outlined">
+                    <Button
+                      variant={viewMode === "all" ? "contained" : "outlined"}
+                      onClick={() => setViewMode("all")}
+                      sx={{ textTransform: "none", fontWeight: 700 }}
+                    >
+                      All Pages ({totalPages})
+                    </Button>
+                    <Button
+                      variant={viewMode === "single" ? "contained" : "outlined"}
+                      onClick={() => setViewMode("single")}
+                      sx={{ textTransform: "none", fontWeight: 700 }}
+                    >
+                      Single Page
+                    </Button>
+                  </ButtonGroup>
+
+                  {viewMode === "single" && (
+                    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ ml: 1, bgcolor: "#f3f4f6", px: 1, py: 0.25, borderRadius: 1.5 }}>
+                      <IconButton
+                        size="small"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        title="Previous Page"
+                      >
+                        <NavigateBeforeIcon fontSize="small" />
+                      </IconButton>
+                      <Typography variant="body2" sx={{ fontWeight: 700, px: 0.5, fontSize: 13, minWidth: 80, textAlign: "center" }}>
+                        {currentPage} / {totalPages}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        title="Next Page"
+                      >
+                        <NavigateNextIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  )}
+                </Stack>
+
+                {/* Right: Zoom controls & Print actions */}
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Stack direction="row" spacing={0.5} alignItems="center" sx={{ bgcolor: "#f3f4f6", px: 1, py: 0.25, borderRadius: 1.5 }}>
+                    <Tooltip title="Zoom Out">
+                      <span>
+                        <IconButton size="small" onClick={handleZoomOut} disabled={zoom <= 0.45}>
+                          <ZoomOutIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Typography variant="body2" sx={{ fontWeight: 800, minWidth: 42, textAlign: "center", fontSize: 12 }}>
+                      {Math.round(zoom * 100)}%
+                    </Typography>
+                    <Tooltip title="Zoom In">
+                      <span>
+                        <IconButton size="small" onClick={handleZoomIn} disabled={zoom >= 1.4}>
+                          <ZoomInIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title="Fit to Screen Width">
+                      <Button size="small" variant="text" startIcon={<FitScreenIcon fontSize="small" />} onClick={handleFitWidth} sx={{ minWidth: "auto", px: 1, textTransform: "none", fontSize: 11, fontWeight: 700 }}>
+                        Fit
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Reset Zoom (100%)">
+                      <Button size="small" variant="text" startIcon={<RestartAltIcon fontSize="small" />} onClick={() => setZoom(1)} sx={{ minWidth: "auto", px: 1, textTransform: "none", fontSize: 11, fontWeight: 700 }}>
+                        100%
+                      </Button>
+                    </Tooltip>
+                  </Stack>
+
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    startIcon={<PrintIcon />}
+                    onClick={() => printLandscape("exam-model3-tr-bulk")}
+                    sx={{ textTransform: "none", fontWeight: 700 }}
+                  >
+                    Print Landscape (A4)
+                  </Button>
+
+                  {viewMode === "single" && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<PrintIcon />}
+                      onClick={() => printLandscape("exam-model3-tr-bulk", currentPage - 1)}
+                      sx={{ textTransform: "none", fontWeight: 700 }}
+                    >
+                      Print Page {currentPage}
+                    </Button>
+                  )}
+                </Stack>
+              </Paper>
+
+              {/* DARK THEMED PREVIEW WORKSPACE */}
+              <Box
+                ref={workspaceRef}
+                className="tr-preview-workspace"
+                sx={{
+                  width: "100%",
+                  minHeight: "72vh",
+                  bgcolor: "#374151",
+                  borderRadius: 2.5,
+                  p: { xs: 1.5, md: 3 },
+                  overflow: "auto",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "flex-start",
+                  boxShadow: "inset 0 2px 10px rgba(0,0,0,0.5)"
+                }}
+              >
+                <Box
+                  className="tr-preview-zoom-outer"
+                  sx={{
+                    width: zoom > 1 ? `${297 * zoom}mm` : "100%",
+                    display: "flex",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Box
+                    className="tr-preview-zoom-inner"
+                    sx={{
+                      width: "297mm",
+                      transform: `scale(${zoom})`,
+                      transformOrigin: "top center",
+                      transition: "transform 0.12s ease-out",
+                      mb: zoom !== 1 ? `${(zoom - 1) * 210}mm` : 0
+                    }}
+                  >
+                    <ExamModel3TrPrint report={report} activePageIdx={viewMode === "single" ? currentPage - 1 : null} />
+                  </Box>
+                </Box>
+              </Box>
+            </Stack>
           )}
         </Stack>
       </Box>
@@ -2699,52 +3088,75 @@ export function ExaminationModel3TrPage() {
             width: 297mm;
             min-height: 200mm;
             margin: 16px auto;
-            padding: 8mm 6mm;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #ccc;
+            padding: 6mm 6mm;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
           }
         }
         @media print {
-          @page { size: A4 landscape; margin: 4mm 5mm; }
-          body * { visibility: hidden; }
-          #exam-model3-tr-bulk, #exam-model3-tr-bulk * { visibility: visible; color: #000 !important; }
-          #exam-model3-tr-bulk {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 287mm !important;
-            min-width: 287mm !important;
+          @page {
+            size: 297mm 210mm landscape;
+            margin: 4mm 5mm;
+          }
+          html, body {
+            width: 297mm !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            background: transparent !important;
+            background: #fff !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .screen-only, .MuiDrawer-root, .MuiAppBar-root, nav, header {
+            display: none !important;
+          }
+          #exam-model3-tr-bulk, #exam-model3-tr-bulk * {
+            visibility: visible !important;
+            color: #000 !important;
+          }
+          #exam-model3-tr-bulk {
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 287mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
           }
           .tr-page {
             width: 287mm !important;
-            min-height: 198mm !important;
-            max-height: 201mm !important;
-            height: 198mm !important;
+            max-width: 287mm !important;
+            height: 200mm !important;
+            max-height: 200mm !important;
             margin: 0 !important;
             padding: 2mm 3mm !important;
-            border: none !important;
-            box-shadow: none !important;
-            page-break-after: always !important;
-            break-after: page !important;
             box-sizing: border-box !important;
+            page-break-before: always !important;
+            break-before: page !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
             overflow: hidden !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: #fff !important;
           }
-          .tr-page:last-child {
-            page-break-after: auto !important;
-            break-after: auto !important;
+          .tr-page:first-of-type {
+            page-break-before: avoid !important;
+            break-before: avoid !important;
           }
-          .screen-only { display: none !important; }
         }
       `}</style>
     </MenuPageShell>
