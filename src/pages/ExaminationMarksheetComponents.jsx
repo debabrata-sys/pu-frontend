@@ -65,34 +65,39 @@ const uniqueSorted = (arr) => Array.from(new Set((arr || []).filter(Boolean).map
 // ==========================================
 export function MarksheetSecurityFrame({ children, isLandscape = false }) {
   return (
-    <Box
+    <div
       className="marksheet-security-frame"
-      sx={{
+      style={{
         width: "100%",
         height: "100%",
         position: "relative",
         boxSizing: "border-box",
-        p: { xs: "8px", md: "11px" },
+        padding: isLandscape ? "8px 10px" : "8px 10px",
         border: "3px double #135497",
         outline: "1px solid #135497",
         outlineOffset: "-6px",
-        bgcolor: "#fff",
+        backgroundColor: "#fff",
         color: "#000",
         overflow: "hidden"
       }}
     >
       {/* Decorative Corner Ornaments */}
-      <Box sx={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
-      <Box sx={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
-      <Box sx={{ position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
-      <Box sx={{ position: "absolute", bottom: 4, right: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 4, right: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
 
       {/* Repeating Diagonal Watermark */}
-      <Box
+      <div
         className="marksheet-watermark"
-        sx={{
+        style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
           pointerEvents: "none",
           opacity: 0.05,
           zIndex: 0,
@@ -101,7 +106,7 @@ export function MarksheetSecurityFrame({ children, isLandscape = false }) {
           justifyContent: "center",
           transform: "rotate(-25deg)",
           fontSize: isLandscape ? "28pt" : "24pt",
-          fontWeight: 950,
+          fontWeight: 900,
           color: "#135497",
           lineHeight: 2.2,
           textAlign: "center",
@@ -109,13 +114,13 @@ export function MarksheetSecurityFrame({ children, isLandscape = false }) {
         }}
       >
         {`PEOPLE'S UNIVERSITY, BHOPAL    PEOPLE'S UNIVERSITY, BHOPAL\nPEOPLE'S UNIVERSITY, BHOPAL    PEOPLE'S UNIVERSITY, BHOPAL\nPEOPLE'S UNIVERSITY, BHOPAL    PEOPLE'S UNIVERSITY, BHOPAL\nPEOPLE'S UNIVERSITY, BHOPAL    PEOPLE'S UNIVERSITY, BHOPAL`}
-      </Box>
+      </div>
 
       {/* Content Layer */}
-      <Box sx={{ position: "relative", zIndex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <div style={{ position: "relative", zIndex: 1, width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", boxSizing: "border-box" }}>
         {children}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -131,69 +136,69 @@ export function UniversityHeader({
   isLandscape = false
 }) {
   return (
-    <Box sx={{ mb: 1, borderBottom: "1.5px solid #135497", pb: 0.8 }}>
-      <Grid container alignItems="center" justifyContent="space-between">
+    <div style={{ width: "100%", marginBottom: "6px", borderBottom: "1.5px solid #135497", paddingBottom: "5px", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
         {/* Left: QR Code or Logo space */}
-        <Grid item xs={2} sx={{ display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
+        <div style={{ width: "18%", display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
           {qr ? (
-            <Box sx={{ border: "1px solid #333", p: 0.3, bgcolor: "#fff", display: "inline-block" }}>
-              <Box component="img" src={qr} alt="QR" sx={{ width: isLandscape ? 58 : 52, height: isLandscape ? 58 : 52, display: "block" }} />
-            </Box>
+            <div style={{ border: "1px solid #333", padding: "2px", backgroundColor: "#fff", display: "inline-block" }}>
+              <img src={qr} alt="QR" style={{ width: isLandscape ? 56 : 50, height: isLandscape ? 56 : 50, display: "block" }} />
+            </div>
           ) : (
-            logo && <Box component="img" src={logo} alt="Logo" sx={{ maxHeight: 52, maxWidth: 80, objectFit: "contain" }} />
+            logo && <img src={logo} alt="Logo" style={{ maxHeight: 50, maxWidth: 80, objectFit: "contain" }} />
           )}
-        </Grid>
+        </div>
 
         {/* Center: University Title & Crest */}
-        <Grid item xs={8} sx={{ textAlign: "center" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+        <div style={{ width: "64%", textAlign: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
             {logo && (
-              <Box component="img" src={logo} alt="" sx={{ height: isLandscape ? 40 : 44, objectFit: "contain" }} />
+              <img src={logo} alt="" style={{ height: isLandscape ? 38 : 42, objectFit: "contain" }} />
             )}
-            <Typography
-              sx={{
+            <span
+              style={{
                 fontSize: isLandscape ? "21pt" : "20pt",
-                fontWeight: 950,
+                fontWeight: 900,
                 color: "#135497",
-                letterSpacing: 1.2,
+                letterSpacing: "1.2px",
                 lineHeight: 1.05,
                 fontFamily: "Arial, sans-serif"
               }}
             >
               PEOPLE'S UNIVERSITY
-            </Typography>
-          </Box>
+            </span>
+          </div>
 
-          <Typography sx={{ fontSize: isLandscape ? "7.2pt" : "7.0pt", fontWeight: 700, color: "#222", mt: 0.3, lineHeight: 1.1 }}>
+          <div style={{ fontSize: isLandscape ? "7.2pt" : "7.0pt", fontWeight: 700, color: "#222", marginTop: "3px", lineHeight: 1.1 }}>
             [Established under MP Act No. 17/2007, by Amendment Act No. 18/2011 and approved by UGC]
-          </Typography>
+          </div>
 
-          <Box sx={{ display: "inline-block", mt: 0.6, px: 2, py: 0.2, border: "1.5px solid #135497", borderRadius: 1 }}>
-            <Typography sx={{ fontSize: isLandscape ? "9.5pt" : "9.0pt", fontWeight: 900, color: "#135497", letterSpacing: 0.8, textTransform: "uppercase" }}>
+          <div style={{ display: "inline-block", marginTop: "4px", padding: "2px 14px", border: "1.5px solid #135497", borderRadius: "4px" }}>
+            <span style={{ fontSize: isLandscape ? "9.5pt" : "9.0pt", fontWeight: 900, color: "#135497", letterSpacing: "0.8px", textTransform: "uppercase" }}>
               {subTitle}
-            </Typography>
-          </Box>
-        </Grid>
+            </span>
+          </div>
+        </div>
 
         {/* Right: Photo & Marksheet No */}
-        <Grid item xs={2} sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ width: "18%", display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center" }}>
           {photo ? (
-            <Box sx={{ border: "1.5px solid #c00", p: 0.2, bgcolor: "#fff", mb: 0.3 }}>
-              <Box component="img" src={photo} alt="" sx={{ width: isLandscape ? 54 : 48, height: isLandscape ? 64 : 58, objectFit: "cover", display: "block" }} />
-            </Box>
+            <div style={{ border: "1.5px solid #c00", padding: "2px", backgroundColor: "#fff", marginBottom: "3px" }}>
+              <img src={photo} alt="" style={{ width: isLandscape ? 52 : 46, height: isLandscape ? 62 : 56, objectFit: "cover", display: "block" }} />
+            </div>
           ) : (
-            <Box sx={{ width: 50, height: 60, border: "1px dashed #999", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, mb: 0.3 }}>
+            <div style={{ width: 48, height: 58, border: "1px dashed #999", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7.5pt", marginBottom: "3px", color: "#666" }}>
               Photo
-            </Box>
+            </div>
           )}
           {marksheetNo && (
-            <Typography sx={{ fontSize: "7.2pt", fontWeight: 900, textAlign: "right" }}>
+            <div style={{ fontSize: "7.0pt", fontWeight: 900, textAlign: "right", color: "#000" }}>
               MARKSHEET NO. : <span style={{ fontWeight: 800 }}>{marksheetNo}</span>
-            </Typography>
+            </div>
           )}
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -255,7 +260,7 @@ export function AnnualMainMarksheetPrint({
   const demoVal = { fontSize: "7.2pt", fontWeight: 700, color: "#000" };
 
   return (
-    <Box className="marksheet-page marksheet-landscape" sx={{ width: "297mm", minHeight: "208mm", p: 1, bgcolor: "#fff", boxSizing: "border-box" }}>
+    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "200mm", maxHeight: "200mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
@@ -520,7 +525,7 @@ export function SemesterProvisionalMarksheetPrint({
   const demoVal = { fontSize: "8pt", fontWeight: 700, color: "#000" };
 
   return (
-    <Box className="marksheet-page marksheet-portrait" sx={{ width: "210mm", minHeight: "292mm", p: 1, bgcolor: "#fff", boxSizing: "border-box" }}>
+    <Box className="marksheet-page marksheet-portrait" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape={false}>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
@@ -529,7 +534,7 @@ export function SemesterProvisionalMarksheetPrint({
         />
 
         {/* DEMOGRAPHICS GRID */}
-        <Box sx={{ mb: 1.5, px: 0.5 }}>
+        <Box sx={{ mb: 1, px: 0.5 }}>
           <Grid container spacing={1}>
             <Grid item xs={6}>
               <Typography sx={demoLabel}>ENROLLMENT NO. : <span style={demoVal}>{fmt(student.enrolmentno || student.regno)}</span></Typography>
@@ -549,7 +554,7 @@ export function SemesterProvisionalMarksheetPrint({
         </Box>
 
         {/* CREDITS & GRADE TABLE */}
-        <Box sx={{ width: "100%", mb: 1.5 }}>
+        <Box sx={{ width: "100%", mb: 0.8 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
             <thead>
               <tr>
@@ -604,7 +609,7 @@ export function SemesterProvisionalMarksheetPrint({
         </Box>
 
         {/* CONSOLIDATED SEMESTER TABLE */}
-        <Box sx={{ width: "100%", mb: 2 }}>
+        <Box sx={{ width: "100%", mb: 0.8 }}>
           <Typography sx={{ fontSize: "8pt", fontWeight: 900, textAlign: "center", mb: 0.3 }}>CONSOLIDATED</Typography>
           <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
             <thead>
@@ -702,7 +707,7 @@ export function AnnualProvisionalMarksheetPrint({
   const demoVal = { fontSize: "7.5pt", fontWeight: 700, color: "#000" };
 
   return (
-    <Box className="marksheet-page marksheet-landscape" sx={{ width: "297mm", minHeight: "208mm", p: 1, bgcolor: "#fff", boxSizing: "border-box" }}>
+    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "200mm", maxHeight: "200mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
@@ -918,7 +923,7 @@ export function SemesterMainMarksheetPrint({
   return (
     <Box className="semester-main-sheet-wrapper">
       {/* ================= PAGE 1 (FRONT) ================= */}
-      <Box className="marksheet-page marksheet-portrait marksheet-page-front" sx={{ width: "210mm", minHeight: "292mm", p: 1, bgcolor: "#fff", boxSizing: "border-box" }}>
+      <Box className="marksheet-page marksheet-portrait marksheet-page-front" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
         <MarksheetSecurityFrame isLandscape={false}>
           <UniversityHeader
             logo={institution.logolink || institution.logo}
@@ -930,7 +935,7 @@ export function SemesterMainMarksheetPrint({
           />
 
           {/* DEMOGRAPHICS */}
-          <Box sx={{ mb: 1.2, px: 0.5 }}>
+          <Box sx={{ mb: 0.8, px: 0.5 }}>
             <Grid container spacing={0.8}>
               <Grid item xs={6}>
                 <Typography sx={demoLabel}>ENROLLMENT NO. : <span style={demoVal}>{fmt(student.enrolmentno || student.regno)}</span></Typography>
@@ -950,7 +955,7 @@ export function SemesterMainMarksheetPrint({
           </Box>
 
           {/* TABLE */}
-          <Box sx={{ width: "100%", mb: 1.2 }}>
+          <Box sx={{ width: "100%", mb: 0.8 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
               <thead>
                 <tr>
@@ -1010,7 +1015,7 @@ export function SemesterMainMarksheetPrint({
           </Box>
 
           {/* CONSOLIDATED */}
-          <Box sx={{ width: "100%", mb: 1.5 }}>
+          <Box sx={{ width: "100%", mb: 0.8 }}>
             <Typography sx={{ fontSize: "8pt", fontWeight: 900, textAlign: "center", mb: 0.2 }}>CONSOLIDATED</Typography>
             <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
               <thead>
@@ -1044,7 +1049,7 @@ export function SemesterMainMarksheetPrint({
           </Box>
 
           {/* SIGNATURES */}
-          <Box sx={{ mt: "auto", pt: 1, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "8pt", fontWeight: 900 }}>
+          <Box sx={{ mt: "auto", pt: 0.5, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "8pt", fontWeight: 900 }}>
             <Box>
               <div>PREPARED BY : ____________________</div>
               <div style={{ marginTop: 6 }}>ISSUE DATE : <span style={{ fontWeight: 800 }}>{issueDate || new Date().toLocaleDateString("en-GB")}</span></div>
@@ -1061,7 +1066,7 @@ export function SemesterMainMarksheetPrint({
       </Box>
 
       {/* ================= PAGE 2 (BACK: PARAMETERS APPLICABLE) ================= */}
-      <Box className="marksheet-page marksheet-portrait marksheet-page-back" sx={{ width: "210mm", minHeight: "292mm", p: "12mm 15mm", bgcolor: "#fff", boxSizing: "border-box", color: "#000", border: "1px solid #ccc", mt: { xs: 2, md: 3 } }}>
+      <Box className="marksheet-page marksheet-portrait marksheet-page-back" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "8mm 12mm", bgcolor: "#fff", boxSizing: "border-box", color: "#000", border: "1px solid #ccc", mt: { xs: 2, md: 3 }, overflow: "hidden" }}>
         <Typography sx={{ textAlign: "center", fontSize: "14pt", fontWeight: 900, textDecoration: "underline", mb: 2 }}>
           Parameters Applicable
         </Typography>
@@ -1254,6 +1259,17 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
   iframe.style.border = "0";
   document.body.appendChild(iframe);
 
+  // Clone all head style and stylesheet tags
+  let headStyles = "";
+  try {
+    const styleNodes = document.querySelectorAll("style, link[rel='stylesheet']");
+    styleNodes.forEach((node) => {
+      headStyles += node.outerHTML + "\n";
+    });
+  } catch (err) {
+    console.warn("Could not copy stylesheets to print iframe", err);
+  }
+
   const doc = iframe.contentWindow.document;
   doc.open();
 
@@ -1263,10 +1279,11 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
       <head>
         <meta charset="utf-8" />
         <title>Marksheet</title>
+        ${headStyles}
         <style>
           @page {
             size: ${isLandscape ? "A4 landscape" : "A4 portrait"};
-            margin: ${isLandscape ? "3mm 4mm" : "4mm 5mm"};
+            margin: 3mm;
           }
           * {
             box-sizing: border-box !important;
@@ -1287,6 +1304,7 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             max-width: 100% !important;
             margin: 0 auto !important;
             box-sizing: border-box !important;
+            overflow: hidden !important;
             page-break-before: always !important;
             break-before: page !important;
             page-break-after: avoid !important;
@@ -1294,6 +1312,14 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             background: #fff !important;
+          }
+          .marksheet-portrait {
+            height: 284mm !important;
+            max-height: 284mm !important;
+          }
+          .marksheet-landscape {
+            height: 200mm !important;
+            max-height: 200mm !important;
           }
           .marksheet-page:first-of-type {
             page-break-before: avoid !important;
@@ -1308,6 +1334,34 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             break-before: page !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
+          }
+          .marksheet-security-frame {
+            position: relative !important;
+            width: 100% !important;
+            height: 100% !important;
+            box-sizing: border-box !important;
+            border: 3px double #135497 !important;
+            outline: 1px solid #135497 !important;
+            outline-offset: -6px !important;
+            overflow: hidden !important;
+            background-color: #fff !important;
+          }
+          .marksheet-watermark {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            opacity: 0.05 !important;
+            z-index: 0 !important;
+            transform: rotate(-25deg) !important;
+            pointer-events: none !important;
+            color: #135497 !important;
           }
           table {
             border-collapse: collapse !important;
@@ -1331,7 +1385,7 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
   setTimeout(() => {
     iframe.contentWindow.focus();
     iframe.contentWindow.print();
-  }, 350);
+  }, 450);
 }
 
 // ==========================================
