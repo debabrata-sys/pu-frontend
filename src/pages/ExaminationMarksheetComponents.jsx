@@ -1277,8 +1277,11 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
         const res = await ep1.get(`/api/v2/${modelPrefix}/options`, { params: { colid: global1.colid } });
         const opts = res.data?.options || {};
         const progs = res.data?.programs || [];
+        const examList = res.data?.examList || [];
         setOptions({
           ...opts,
+          programs: progs,
+          examList,
           academicyear: uniqueSorted(["2026-27", ...(opts.academicyear || [])]),
           program: uniqueSorted([...(opts.program || []), ...progs.map((p) => p.program)]),
           programcode: uniqueSorted([...(opts.programcode || []), ...progs.map((p) => p.programcode)])
@@ -1287,6 +1290,103 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
     };
     loadOpts();
   }, [modelPrefix]);
+
+  const academicYearChoices = useMemo(() => {
+    return uniqueSorted([
+      "2026-27",
+      ...(options.academicyear || []),
+      "2025-26",
+      "2024-25"
+    ]);
+  }, [options.academicyear]);
+
+  const programChoices = useMemo(() => {
+    const map = new Map();
+    (options.programs || []).forEach((p) => {
+      if (p.programcode) {
+        map.set(p.programcode, p.program || p.name || p.programcode);
+      }
+    });
+    (options.programcode || []).forEach((code, idx) => {
+      if (!map.has(code)) {
+        map.set(code, options.program?.[idx] || code);
+      }
+    });
+    return Array.from(map.entries()).map(([code, name]) => ({ code, name }));
+  }, [options.programs, options.programcode, options.program]);
+
+  const semesterChoices = useMemo(() => {
+    const defaults = [
+      "1", "2", "3", "4", "5", "6", "7", "8",
+      "SEM I", "SEM II", "SEM III", "SEM IV", "SEM V", "SEM VI", "SEM VII", "SEM VIII",
+      "I SEM", "II SEM", "III SEM", "IV SEM", "V SEM", "VI SEM", "VII SEM", "VIII SEM",
+      "I PROF", "II PROF", "III PROF(P-I)", "III PROF(P-II)", "IV PROF"
+    ];
+    return uniqueSorted([
+      ...(options.semester || []),
+      ...defaults,
+      ...(filters.semester ? [filters.semester] : [])
+    ]);
+  }, [options.semester, filters.semester]);
+
+  const examChoices = useMemo(() => {
+    const map = new Map();
+    (options.examList || []).forEach((item) => {
+      const code = item.examcode || item.exam;
+      if (code) {
+        map.set(code, {
+          examcode: code,
+          exam: item.exam || item.examcode,
+          label: item.exam && item.exam !== code ? `${item.exam} (${code})` : (item.exam || code)
+        });
+      }
+    });
+    (options.examcode || []).forEach((code, idx) => {
+      if (!map.has(code)) {
+        const examName = options.exam?.[idx] || code;
+        map.set(code, {
+          examcode: code,
+          exam: examName,
+          label: examName && examName !== code ? `${examName} (${code})` : code
+        });
+      }
+    });
+    (options.exam || []).forEach((ex) => {
+      if (!map.has(ex)) {
+        map.set(ex, {
+          examcode: ex,
+          exam: ex,
+          label: ex
+        });
+      }
+    });
+    if (map.size === 0) {
+      const fallbackExams = [
+        { examcode: "EXAM-JUNE-2026", exam: "JUNE-2026" },
+        { examcode: "EXAM-Feb-26", exam: "Feb-26" },
+        { examcode: "EXAM-Jan-26", exam: "Jan-26" },
+        { examcode: "EXAM-Aug-25", exam: "Aug-25" },
+        { examcode: "EXAM-Feb-25", exam: "Feb-25" },
+        { examcode: "MBBS-PROF1-2026", exam: "Theory Examination, SEPTEMBER-2026" },
+        { examcode: "MAY-2026", exam: "MAY-2026" }
+      ];
+      fallbackExams.forEach((f) => {
+        map.set(f.examcode, {
+          examcode: f.examcode,
+          exam: f.exam,
+          label: `${f.exam} (${f.examcode})`
+        });
+      });
+    }
+    if (filters.examcode && !map.has(filters.examcode)) {
+      map.set(filters.examcode, {
+        examcode: filters.examcode,
+        exam: filters.exam || filters.examcode,
+        label: filters.exam && filters.exam !== filters.examcode ? `${filters.exam} (${filters.examcode})` : filters.examcode
+      });
+    }
+    return Array.from(map.values());
+  }, [options.examList, options.examcode, options.exam, filters.examcode, filters.exam]);
 
   const students = report?.students || [];
   const currentStudent = students[selectedStudentIdx] || null;
@@ -1363,9 +1463,10 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
       ]}
     >
       <Box sx={{ width: "100%", pb: 5 }}>
-        {/* FILTER BAR */}
+        {/* FILTER BAR - ALL FILTERS ARE DROPDOWNS */}
         <Paper elevation={0} sx={{ p: 2, mb: 2.5, borderRadius: 2.5, border: "1px solid #e5e7eb" }}>
           <Grid container spacing={1.5} alignItems="center">
+            {/* 1. Academic Year Dropdown */}
             <Grid item xs={12} sm={6} md={2}>
               <TextField
                 select
@@ -1375,12 +1476,13 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
                 value={filters.academicyear}
                 onChange={(e) => setFilters({ ...filters, academicyear: e.target.value })}
               >
-                {(options.academicyear || ["2026-27"]).map((y) => (
+                {academicYearChoices.map((y) => (
                   <MenuItem key={y} value={y}>{y}</MenuItem>
                 ))}
               </TextField>
             </Grid>
 
+            {/* 2. Regulation Dropdown */}
             <Grid item xs={12} sm={6} md={2}>
               <TextField
                 select
@@ -1397,6 +1499,7 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
               </TextField>
             </Grid>
 
+            {/* 3. Program Dropdown */}
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 select
@@ -1406,39 +1509,61 @@ export function ExaminationModelMarksheetPageBase({ isMain = false, modelNumber 
                 value={filters.programcode}
                 onChange={(e) => {
                   const pcode = e.target.value;
-                  const pRow = (options.programs || []).find((p) => p.programcode === pcode);
-                  setFilters({ ...filters, programcode: pcode, program: pRow?.program || filters.program });
+                  const item = programChoices.find((p) => p.code === pcode);
+                  setFilters({ ...filters, programcode: pcode, program: item?.name || "" });
                 }}
               >
-                <MenuItem value="">All Programs</MenuItem>
-                {(options.programcode || []).map((code, idx) => (
-                  <MenuItem key={code} value={code}>
-                    {options.program?.[idx] ? `${options.program[idx]} (${code})` : code}
+                <MenuItem value="">Select Program</MenuItem>
+                {programChoices.map((p) => (
+                  <MenuItem key={p.code} value={p.code}>
+                    {p.name !== p.code ? `${p.name} (${p.code})` : p.code}
                   </MenuItem>
                 ))}
               </TextField>
             </Grid>
 
+            {/* 4. Semester / Prof Dropdown */}
             <Grid item xs={12} sm={6} md={2}>
               <TextField
+                select
                 fullWidth
                 size="small"
                 label="Semester / Prof"
                 value={filters.semester}
                 onChange={(e) => setFilters({ ...filters, semester: e.target.value })}
-                placeholder="e.g. 5, V, or III PROF"
-              />
+              >
+                <MenuItem value="">Select Semester / Prof</MenuItem>
+                {semesterChoices.map((s) => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
             </Grid>
 
+            {/* 5. Exam / Exam Code Dropdown */}
             <Grid item xs={12} sm={6} md={3}>
               <TextField
+                select
                 fullWidth
                 size="small"
                 label="Exam / Exam Code"
-                value={filters.examcode || filters.exam}
-                onChange={(e) => setFilters({ ...filters, examcode: e.target.value, exam: e.target.value })}
-                placeholder="e.g. MAY-2026 or EXAM01"
-              />
+                value={filters.examcode || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const item = examChoices.find((x) => x.examcode === val);
+                  setFilters({
+                    ...filters,
+                    examcode: val,
+                    exam: item?.exam || val
+                  });
+                }}
+              >
+                <MenuItem value="">Select Exam / Exam Code</MenuItem>
+                {examChoices.map((item) => (
+                  <MenuItem key={item.examcode} value={item.examcode}>
+                    {item.label}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
 
             {/* FORMAT TOGGLE & ACTION BUTTONS */}
