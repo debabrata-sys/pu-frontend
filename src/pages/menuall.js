@@ -3711,6 +3711,20 @@ export function menuitemsall() {
             </ListItemIcon>
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="TR" />}
           </ListItem>
+
+          <ListItem button component={RouterLink} to="/exammodel2-provisional-marksheet">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Provisional Marksheet" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/exammodel2-main-marksheet">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Main Marksheet" />}
+          </ListItem>
         </AccordionDetails>
       </Accordion>
       <Accordion>
@@ -3920,6 +3934,20 @@ export function menuitemsall() {
               <PersonIcon />
             </ListItemIcon>
             {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="TR" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/exammodel3-provisional-marksheet">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Provisional Marksheet" />}
+          </ListItem>
+
+          <ListItem button component={RouterLink} to="/exammodel3-main-marksheet">
+            <ListItemIcon>
+              <PersonIcon />
+            </ListItemIcon>
+            {open && <ListItemText primaryTypographyProps={{ fontSize: "14px", whiteSpace: "normal" }} primary="Main Marksheet" />}
           </ListItem>
         </AccordionDetails>
       </Accordion>

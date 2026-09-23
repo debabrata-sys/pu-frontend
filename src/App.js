@@ -1566,6 +1566,8 @@ import {
   ExaminationModel2AprMarksheetSignaturePage,
   ExaminationModel2BulkAprMarksheetSignaturePage,
   ExaminationModel2TrPage,
+  ExaminationModel2ProvisionalMarksheetPage,
+  ExaminationModel2MainMarksheetPage,
   PublicExamModel2MarksheetVerifyPage
 } from "./pages/ExaminationModel2Pages";
 import {
@@ -1596,6 +1598,8 @@ import {
   ExaminationModel3AprMarksheetSignaturePage,
   ExaminationModel3BulkAprMarksheetSignaturePage,
   ExaminationModel3TrPage,
+  ExaminationModel3ProvisionalMarksheetPage,
+  ExaminationModel3MainMarksheetPage,
   PublicExamModel3MarksheetVerifyPage
 } from "./pages/ExaminationModel3Pages";
 import MenuSearchPage from "./pages/MenuSearchPage";
@@ -3884,6 +3888,8 @@ function App() {
         <Route path="/exammodel2aprmarksheet-signature" element={<ExaminationModel2AprMarksheetSignaturePage />} />
         <Route path="/exammodel2bulkaprmarksheet-signature" element={<ExaminationModel2BulkAprMarksheetSignaturePage />} />
         <Route path="/exammodel2tr" element={<ExaminationModel2TrPage />} />
+        <Route path="/exammodel2-provisional-marksheet" element={<ExaminationModel2ProvisionalMarksheetPage />} />
+        <Route path="/exammodel2-main-marksheet" element={<ExaminationModel2MainMarksheetPage />} />
         <Route path="/verify-exam-model2-marksheet" element={<PublicExamModel2MarksheetVerifyPage />} />
         <Route path="/exammodel3marks" element={<ExaminationModel3MarksPage />} />
         <Route path="/exammodel3-component-marks-crud" element={<ExamModel3ComponentMarksCrudPage />} />
@@ -3914,6 +3920,8 @@ function App() {
         <Route path="/exammodel3aprmarksheet-signature" element={<ExaminationModel3AprMarksheetSignaturePage />} />
         <Route path="/exammodel3bulkaprmarksheet-signature" element={<ExaminationModel3BulkAprMarksheetSignaturePage />} />
         <Route path="/exammodel3tr" element={<ExaminationModel3TrPage />} />
+        <Route path="/exammodel3-provisional-marksheet" element={<ExaminationModel3ProvisionalMarksheetPage />} />
+        <Route path="/exammodel3-main-marksheet" element={<ExaminationModel3MainMarksheetPage />} />
         <Route path="/verify-exam-model3-marksheet" element={<PublicExamModel3MarksheetVerifyPage />} />
         <Route path="/neplmsstudentwiseattendance" element={<NepLmsStudentwiseAttendanceReportPage />} />
         <Route path="/neplmsstudentcoursewiseattendance" element={<NepLmsStudentCoursewiseAttendanceReportPage />} />

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
+import { ExaminationModelMarksheetPageBase } from "./ExaminationMarksheetComponents";
 import {
   Alert,
   Autocomplete,
@@ -4806,3 +4807,12 @@ export function ExaminationModel3SampleMarksheet3Page() {
     </MenuPageShell>
   );
 }
+
+export function ExaminationModel3ProvisionalMarksheetPage() {
+  return <ExaminationModelMarksheetPageBase isMain={false} modelNumber={3} />;
+}
+
+export function ExaminationModel3MainMarksheetPage() {
+  return <ExaminationModelMarksheetPageBase isMain={true} modelNumber={3} />;
+}
+
