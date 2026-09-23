@@ -2282,7 +2282,7 @@ export function ExaminationModel2AprMarksheetSignaturePage() {
   return <ExaminationModel2AprMarksheetPageBase withRegistrarSignature pageTitle="Annual Performance Report Signature" pageSubtitle="Copy of Annual Performance Report with selectable Registrar signature." />;
 }
 
-function printReport(elementId, pageIdx = null, paperSize = "a3") {
+function printReport(elementId, pageIdx = null, paperSize = "a4") {
   const container = document.getElementById(elementId);
   if (!container) {
     window.print();
@@ -2326,8 +2326,7 @@ function printReport(elementId, pageIdx = null, paperSize = "a3") {
   }
 
   const isA3 = paperSize === "a3";
-  const pageSizeRule = isA3 ? "420mm 297mm landscape" : "297mm 210mm landscape";
-  const pageWidth = isA3 ? "410mm" : "287mm";
+  const pageSizeRule = isA3 ? "A3 landscape" : "A4 landscape";
   const pageHeight = isA3 ? "287mm" : "200mm";
 
   doc.write(`
@@ -2352,11 +2351,13 @@ function printReport(elementId, pageIdx = null, paperSize = "a3") {
             margin: 0 !important;
             padding: 0 !important;
             background: #fff !important;
-            width: ${pageWidth} !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
           }
           .tr-page {
-            width: ${pageWidth} !important;
-            max-width: ${pageWidth} !important;
+            width: 100% !important;
+            max-width: 100% !important;
             min-height: ${pageHeight} !important;
             margin: 0 auto !important;
             padding: 2mm 3mm !important;
@@ -2379,9 +2380,10 @@ function printReport(elementId, pageIdx = null, paperSize = "a3") {
             break-before: avoid !important;
           }
           table {
-            border-collapse: collapse;
-            table-layout: fixed;
-            width: 100%;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            width: 100% !important;
+            max-width: 100% !important;
           }
           th, td {
             box-sizing: border-box !important;
@@ -2422,7 +2424,7 @@ const toRomanSem = (val) => {
   return map[s] || (s.startsWith("SEM") ? s : `${s}`);
 };
 
-function ExamModel2TrPrint({ report, activePageIdx = null, paperSize = "a3" }) {
+function ExamModel2TrPrint({ report, activePageIdx = null, paperSize = "a4" }) {
   const institution = report?.institution || {};
   const filters = report?.filters || {};
   const students = report?.students || [];
@@ -2439,9 +2441,9 @@ function ExamModel2TrPrint({ report, activePageIdx = null, paperSize = "a3" }) {
   const totalPages = Math.max(1, studentChunks.length);
   const isA3 = paperSize === "a3";
 
-  const baseFontSize = isA3 ? "6.2pt" : "5.0pt";
-  const headFontSize = isA3 ? "5.6pt" : "4.6pt";
-  const cellPadding = isA3 ? "1.5px 2px" : "1px 1.5px";
+  const baseFontSize = isA3 ? "6.0pt" : "4.8pt";
+  const headFontSize = isA3 ? "5.4pt" : "4.4pt";
+  const cellPadding = isA3 ? "1.2px 1.8px" : "0.75px 1.2px";
 
   const trCell = {
     border: "1px solid #000",
@@ -2812,8 +2814,8 @@ export function ExaminationModel2TrPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [paperSize, setPaperSize] = useState("a3"); // "a3" (Official TR) | "a4"
-  const [zoom, setZoom] = useState(0.8);
+  const [paperSize, setPaperSize] = useState("a4"); // "a4" (Standard Landscape) | "a3" (Official TR)
+  const [zoom, setZoom] = useState(0.95);
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState("all");
   const workspaceRef = React.useRef(null);
@@ -3120,11 +3122,12 @@ export function ExaminationModel2TrPage() {
         }
         @media print {
           @page {
-            size: ${paperSize === "a3" ? "420mm 297mm landscape" : "297mm 210mm landscape"};
+            size: ${paperSize === "a3" ? "A3 landscape" : "A4 landscape"};
             margin: 3mm 4mm;
           }
           html, body {
-            width: ${paperSize === "a3" ? "410mm" : "287mm"} !important;
+            width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -3146,14 +3149,15 @@ export function ExaminationModel2TrPage() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: ${paperSize === "a3" ? "410mm" : "287mm"} !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #fff !important;
           }
           .tr-page {
-            width: ${paperSize === "a3" ? "410mm" : "287mm"} !important;
-            max-width: ${paperSize === "a3" ? "410mm" : "287mm"} !important;
+            width: 100% !important;
+            max-width: 100% !important;
             min-height: ${paperSize === "a3" ? "287mm" : "200mm"} !important;
             margin: 0 !important;
             padding: 2mm 3mm !important;
@@ -3174,6 +3178,12 @@ export function ExaminationModel2TrPage() {
           .tr-page:first-of-type {
             page-break-before: avoid !important;
             break-before: avoid !important;
+          }
+          table {
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+            width: 100% !important;
+            max-width: 100% !important;
           }
         }
       `}</style>
