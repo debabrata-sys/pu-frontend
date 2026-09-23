@@ -207,7 +207,20 @@ export function AnnualMainMarksheetPrint({
   issueDate = "",
   marksheetNo = ""
 }) {
-  const courses = student.courses || [];
+  const courses = useMemo(() => {
+    const map = new Map();
+    (student.courses || []).forEach((c) => {
+      const code = c.papercode || c.coursecode;
+      if (!code) return;
+      if (!map.has(code)) {
+        map.set(code, { ...c, papercode: code, papername: c.papername || c.course || "" });
+      } else {
+        const prev = map.get(code);
+        Object.assign(prev, c);
+      }
+    });
+    return Array.from(map.values());
+  }, [student.courses]);
   const grandTotal = student.grandTotal || {};
   const consolidated = student.consolidatedProf || [
     { prof: "I - PROF.", marks: "871/1500" },
@@ -436,7 +449,43 @@ export function SemesterProvisionalMarksheetPrint({
   institution = {},
   issueDate = ""
 }) {
-  const courses = student.courses || [];
+  const mergedCourses = useMemo(() => {
+    const map = new Map();
+    (student.courses || []).forEach((c) => {
+      const code = c.papercode || c.coursecode;
+      if (!code) return;
+      if (!map.has(code)) {
+        map.set(code, {
+          papercode: code,
+          papername: c.papername || c.course || "",
+          theoryCreditsOff: c.theoryCreditsOff !== undefined ? c.theoryCreditsOff : (c.type === "T" ? c.creditsOff : "-"),
+          practicalCreditsOff: c.practicalCreditsOff !== undefined ? c.practicalCreditsOff : (c.type === "P" ? c.creditsOff : "-"),
+          theoryCreditsEarned: c.theoryCreditsEarned !== undefined ? c.theoryCreditsEarned : (c.type === "T" ? c.creditsEarned : "-"),
+          practicalCreditsEarned: c.practicalCreditsEarned !== undefined ? c.practicalCreditsEarned : (c.type === "P" ? c.creditsEarned : "-"),
+          theoryGrade: c.theoryGrade !== undefined ? c.theoryGrade : (c.type === "T" ? c.grade : "-"),
+          practicalGrade: c.practicalGrade !== undefined ? c.practicalGrade : (c.type === "P" ? c.grade : "-"),
+          creditsOff: Number(c.creditsOff) || 0,
+          creditsEarned: Number(c.creditsEarned) || 0
+        });
+      } else {
+        const existing = map.get(code);
+        if (c.type === "T" || c.hasTheory) {
+          existing.theoryCreditsOff = c.theoryCreditsOff !== undefined ? c.theoryCreditsOff : (c.creditsOff ?? existing.theoryCreditsOff);
+          existing.theoryCreditsEarned = c.theoryCreditsEarned !== undefined ? c.theoryCreditsEarned : (c.creditsEarned ?? existing.theoryCreditsEarned);
+          existing.theoryGrade = c.theoryGrade !== undefined ? c.theoryGrade : (c.grade ?? existing.theoryGrade);
+        }
+        if (c.type === "P" || c.hasPractical) {
+          existing.practicalCreditsOff = c.practicalCreditsOff !== undefined ? c.practicalCreditsOff : (c.creditsOff ?? existing.practicalCreditsOff);
+          existing.practicalCreditsEarned = c.practicalCreditsEarned !== undefined ? c.practicalCreditsEarned : (c.creditsEarned ?? existing.practicalCreditsEarned);
+          existing.practicalGrade = c.practicalGrade !== undefined ? c.practicalGrade : (c.grade ?? existing.practicalGrade);
+        }
+        existing.creditsOff += Number(c.creditsOff) || 0;
+        existing.creditsEarned += Number(c.creditsEarned) || 0;
+      }
+    });
+    return Array.from(map.values());
+  }, [student.courses]);
+
   const semHistory = student.semHistory || [
     { sem: "I", exam: "Jan-24", result: "FAIL / 5.42" },
     { sem: "II", exam: "Feb-25", result: "PASS / 6" },
@@ -448,8 +497,8 @@ export function SemesterProvisionalMarksheetPrint({
     { sem: "VIII", exam: "-", result: "-" }
   ];
 
-  const totalAllotted = courses.reduce((s, c) => s + (Number(c.creditsOff) || 0), 0) || 26;
-  const totalEarned = courses.reduce((s, c) => s + (Number(c.creditsEarned) || 0), 0) || 26;
+  const totalAllotted = student.grandTotal?.creditsOff || mergedCourses.reduce((s, c) => s + (Number(c.creditsOff) || 0), 0) || 26;
+  const totalEarned = student.grandTotal?.creditsEarned || mergedCourses.reduce((s, c) => s + (Number(c.creditsEarned) || 0), 0) || 26;
 
   const thStyle = {
     border: "1px solid #000",
@@ -527,16 +576,16 @@ export function SemesterProvisionalMarksheetPrint({
               </tr>
             </thead>
             <tbody>
-              {courses.map((c, i) => (
+              {mergedCourses.map((c, i) => (
                 <tr key={i}>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(c.papercode)}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(c.papername)}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "T" ? fmt(c.creditsOff) : "-"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "P" ? fmt(c.creditsOff) : "-"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "T" ? fmt(c.creditsEarned) : "-"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "P" ? fmt(c.creditsEarned) : "-"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.type === "T" ? fmt(c.grade) : "-"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.type === "P" ? fmt(c.grade) : "-"}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsOff)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsOff)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsEarned)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsEarned)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.theoryGrade)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.practicalGrade)}</td>
                 </tr>
               ))}
               {/* SUMMARY ROW */}
@@ -615,7 +664,20 @@ export function AnnualProvisionalMarksheetPrint({
   institution = {},
   issueDate = ""
 }) {
-  const courses = student.courses || [];
+  const courses = useMemo(() => {
+    const map = new Map();
+    (student.courses || []).forEach((c) => {
+      const code = c.papercode || c.coursecode;
+      if (!code) return;
+      if (!map.has(code)) {
+        map.set(code, { ...c, papercode: code, papername: c.papername || c.course || "" });
+      } else {
+        const prev = map.get(code);
+        Object.assign(prev, c);
+      }
+    });
+    return Array.from(map.values());
+  }, [student.courses]);
   const grandTotal = student.grandTotal || {};
   const totalObt = Number(grandTotal.totalObtained || 1573);
   const totalMax = Number(grandTotal.totalMax || 2800);
@@ -783,7 +845,43 @@ export function SemesterMainMarksheetPrint({
   issueDate = "",
   marksheetNo = ""
 }) {
-  const courses = student.courses || [];
+  const mergedCourses = useMemo(() => {
+    const map = new Map();
+    (student.courses || []).forEach((c) => {
+      const code = c.papercode || c.coursecode;
+      if (!code) return;
+      if (!map.has(code)) {
+        map.set(code, {
+          papercode: code,
+          papername: c.papername || c.course || "",
+          theoryCreditsOff: c.theoryCreditsOff !== undefined ? c.theoryCreditsOff : (c.type === "T" ? c.creditsOff : "-"),
+          practicalCreditsOff: c.practicalCreditsOff !== undefined ? c.practicalCreditsOff : (c.type === "P" ? c.creditsOff : "-"),
+          theoryCreditsEarned: c.theoryCreditsEarned !== undefined ? c.theoryCreditsEarned : (c.type === "T" ? c.creditsEarned : "-"),
+          practicalCreditsEarned: c.practicalCreditsEarned !== undefined ? c.practicalCreditsEarned : (c.type === "P" ? c.creditsEarned : "-"),
+          theoryGrade: c.theoryGrade !== undefined ? c.theoryGrade : (c.type === "T" ? c.grade : "-"),
+          practicalGrade: c.practicalGrade !== undefined ? c.practicalGrade : (c.type === "P" ? c.grade : "-"),
+          creditsOff: Number(c.creditsOff) || 0,
+          creditsEarned: Number(c.creditsEarned) || 0
+        });
+      } else {
+        const existing = map.get(code);
+        if (c.type === "T" || c.hasTheory) {
+          existing.theoryCreditsOff = c.theoryCreditsOff !== undefined ? c.theoryCreditsOff : (c.creditsOff ?? existing.theoryCreditsOff);
+          existing.theoryCreditsEarned = c.theoryCreditsEarned !== undefined ? c.theoryCreditsEarned : (c.creditsEarned ?? existing.theoryCreditsEarned);
+          existing.theoryGrade = c.theoryGrade !== undefined ? c.theoryGrade : (c.grade ?? existing.theoryGrade);
+        }
+        if (c.type === "P" || c.hasPractical) {
+          existing.practicalCreditsOff = c.practicalCreditsOff !== undefined ? c.practicalCreditsOff : (c.creditsOff ?? existing.practicalCreditsOff);
+          existing.practicalCreditsEarned = c.practicalCreditsEarned !== undefined ? c.practicalCreditsEarned : (c.creditsEarned ?? existing.practicalCreditsEarned);
+          existing.practicalGrade = c.practicalGrade !== undefined ? c.practicalGrade : (c.grade ?? existing.practicalGrade);
+        }
+        existing.creditsOff += Number(c.creditsOff) || 0;
+        existing.creditsEarned += Number(c.creditsEarned) || 0;
+      }
+    });
+    return Array.from(map.values());
+  }, [student.courses]);
+
   const semHistory = student.semHistory || [
     { sem: "I", exam: "FEB-2025", result: "PASS/7.03" },
     { sem: "II", exam: "FEB-2025", result: "PASS/6.00" },
@@ -795,8 +893,8 @@ export function SemesterMainMarksheetPrint({
     { sem: "VIII", exam: "-", result: "-" }
   ];
 
-  const totalAllotted = courses.reduce((s, c) => s + (Number(c.creditsOff) || 0), 0) || 26;
-  const totalEarned = courses.reduce((s, c) => s + (Number(c.creditsEarned) || 0), 0) || 26;
+  const totalAllotted = student.grandTotal?.creditsOff || mergedCourses.reduce((s, c) => s + (Number(c.creditsOff) || 0), 0) || 26;
+  const totalEarned = student.grandTotal?.creditsEarned || mergedCourses.reduce((s, c) => s + (Number(c.creditsEarned) || 0), 0) || 26;
 
   const thStyle = {
     border: "1px solid #000",
@@ -879,16 +977,16 @@ export function SemesterMainMarksheetPrint({
                 </tr>
               </thead>
               <tbody>
-                {courses.map((c, i) => (
+                {mergedCourses.map((c, i) => (
                   <tr key={i}>
                     <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(c.papercode)}</td>
                     <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(c.papername)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "T" ? fmt(c.creditsOff) : "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "P" ? fmt(c.creditsOff) : "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "T" ? fmt(c.creditsEarned) : "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{c.type === "P" ? fmt(c.creditsEarned) : "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.type === "T" ? fmt(c.grade) : "-"}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{c.type === "P" ? fmt(c.grade) : "-"}</td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsOff)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsOff)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsEarned)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsEarned)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.theoryGrade)}</td>
+                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.practicalGrade)}</td>
                   </tr>
                 ))}
                 <tr>

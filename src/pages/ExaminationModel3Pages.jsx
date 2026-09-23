@@ -2582,7 +2582,26 @@ function ExamModel3TrPrint({ report, activePageIdx = null, paperSize = "a4" }) {
                 </thead>
                 <tbody>
                   {pageStudents.map((student, sIdx) => {
-                    const courses = student.courses || [];
+                    const courseMap = new Map();
+                    (student.courses || []).forEach((c) => {
+                      const code = c.papercode || c.coursecode;
+                      if (!code) return;
+                      if (!courseMap.has(code)) {
+                        courseMap.set(code, { ...c, papercode: code, papername: c.papername || c.course });
+                      } else {
+                        const prev = courseMap.get(code);
+                        prev.type = "T+P";
+                        prev.seMax = (Number(prev.seMax) || 0) + (Number(c.seMax) || 0) || prev.seMax;
+                        prev.iaMax = (Number(prev.iaMax) || 0) + (Number(c.iaMax) || 0) || prev.iaMax;
+                        prev.creditsOff = (Number(prev.creditsOff) || 0) + (Number(c.creditsOff) || 0);
+                        prev.seObtained = (Number(prev.seObtained) || 0) + (Number(c.seObtained) || 0);
+                        prev.iaObtained = (Number(prev.iaObtained) || 0) + (Number(c.iaObtained) || 0);
+                        prev.total = (Number(prev.total) || 0) + (Number(c.total) || 0);
+                        prev.creditsEarned = (Number(prev.creditsEarned) || 0) + (Number(c.creditsEarned) || 0);
+                        prev.gpv = (Number(prev.gpv) || 0) + (Number(c.gpv) || 0);
+                      }
+                    });
+                    const courses = Array.from(courseMap.values());
                     const displayCourses = [...courses];
                     while (displayCourses.length < 5) {
                       displayCourses.push({ isDummy: true });
