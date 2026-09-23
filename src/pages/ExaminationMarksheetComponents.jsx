@@ -72,20 +72,20 @@ export function MarksheetSecurityFrame({ children, isLandscape = false }) {
         height: "100%",
         position: "relative",
         boxSizing: "border-box",
-        padding: isLandscape ? "8px 10px" : "8px 10px",
+        padding: isLandscape ? "6px 8px" : "6px 8px",
         border: "3px double #135497",
         outline: "1px solid #135497",
-        outlineOffset: "-6px",
+        outlineOffset: "-4px",
         backgroundColor: "#fff",
         color: "#000",
         overflow: "hidden"
       }}
     >
       {/* Decorative Corner Ornaments */}
-      <div style={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderTop: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: 4, right: 4, width: 22, height: 22, borderBottom: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 3, left: 3, width: 20, height: 20, borderTop: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 3, right: 3, width: 20, height: 20, borderTop: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 3, left: 3, width: 20, height: 20, borderBottom: "3px solid #135497", borderLeft: "3px solid #135497", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: 3, right: 3, width: 20, height: 20, borderBottom: "3px solid #135497", borderRight: "3px solid #135497", pointerEvents: "none" }} />
 
       {/* Repeating Diagonal Watermark */}
       <div
@@ -131,49 +131,57 @@ export function UniversityHeader({
   logo,
   qr,
   photo,
+  showPhoto = true,
   marksheetNo,
   subTitle = "STATEMENT OF MARKS",
   isLandscape = false
 }) {
+  const leftWidth = showPhoto ? "17%" : "15%";
+  const centerWidth = showPhoto ? (isLandscape ? "66%" : "65%") : (isLandscape ? "73%" : "70%");
+  const rightWidth = showPhoto ? "17%" : "15%";
+
   return (
-    <div style={{ width: "100%", marginBottom: "6px", borderBottom: "1.5px solid #135497", paddingBottom: "5px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", marginBottom: "4px", borderBottom: "1.5px solid #135497", paddingBottom: "3px", boxSizing: "border-box" }}>
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
         {/* Left: QR Code or Logo space */}
-        <div style={{ width: "18%", display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
+        <div style={{ width: leftWidth, display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
           {qr ? (
             <div style={{ border: "1px solid #333", padding: "2px", backgroundColor: "#fff", display: "inline-block" }}>
-              <img src={qr} alt="QR" style={{ width: isLandscape ? 56 : 50, height: isLandscape ? 56 : 50, display: "block" }} />
+              <img src={qr} alt="QR" style={{ width: isLandscape ? 54 : 48, height: isLandscape ? 54 : 48, display: "block" }} />
             </div>
           ) : (
-            logo && <img src={logo} alt="Logo" style={{ maxHeight: 50, maxWidth: 80, objectFit: "contain" }} />
+            logo && <img src={logo} alt="Logo" style={{ maxHeight: 46, maxWidth: 75, objectFit: "contain" }} />
           )}
         </div>
 
         {/* Center: University Title & Crest */}
-        <div style={{ width: "64%", textAlign: "center" }}>
+        <div style={{ width: centerWidth, textAlign: "center" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
             {logo && (
-              <img src={logo} alt="" style={{ height: isLandscape ? 38 : 42, objectFit: "contain" }} />
+              <img src={logo} alt="" style={{ height: isLandscape ? 40 : 44, objectFit: "contain" }} />
             )}
             <span
               style={{
-                fontSize: isLandscape ? "21pt" : "20pt",
-                fontWeight: 900,
+                fontSize: isLandscape ? "26pt" : "24pt",
+                fontWeight: 950,
                 color: "#135497",
-                letterSpacing: "1.2px",
+                letterSpacing: isLandscape ? "2.5px" : "2.2px",
                 lineHeight: 1.05,
-                fontFamily: "Arial, sans-serif"
+                fontFamily: "Arial, Helvetica, sans-serif",
+                textTransform: "uppercase",
+                whiteSpace: "nowrap",
+                display: "inline-block"
               }}
             >
               PEOPLE'S UNIVERSITY
             </span>
           </div>
 
-          <div style={{ fontSize: isLandscape ? "7.2pt" : "7.0pt", fontWeight: 700, color: "#222", marginTop: "3px", lineHeight: 1.1 }}>
+          <div style={{ fontSize: isLandscape ? "7.0pt" : "6.6pt", fontWeight: 700, color: "#222", marginTop: "2px", lineHeight: 1.15, letterSpacing: "0.1px" }}>
             [Established under MP Act No. 17/2007, by Amendment Act No. 18/2011 and approved by UGC]
           </div>
 
-          <div style={{ display: "inline-block", marginTop: "4px", padding: "2px 14px", border: "1.5px solid #135497", borderRadius: "4px" }}>
+          <div style={{ display: "inline-block", marginTop: "3px", padding: "1.5px 14px", border: "1.5px solid #135497", borderRadius: "3px" }}>
             <span style={{ fontSize: isLandscape ? "9.5pt" : "9.0pt", fontWeight: 900, color: "#135497", letterSpacing: "0.8px", textTransform: "uppercase" }}>
               {subTitle}
             </span>
@@ -181,18 +189,20 @@ export function UniversityHeader({
         </div>
 
         {/* Right: Photo & Marksheet No */}
-        <div style={{ width: "18%", display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center" }}>
-          {photo ? (
-            <div style={{ border: "1.5px solid #c00", padding: "2px", backgroundColor: "#fff", marginBottom: "3px" }}>
-              <img src={photo} alt="" style={{ width: isLandscape ? 52 : 46, height: isLandscape ? 62 : 56, objectFit: "cover", display: "block" }} />
-            </div>
-          ) : (
-            <div style={{ width: 48, height: 58, border: "1px dashed #999", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7.5pt", marginBottom: "3px", color: "#666" }}>
-              Photo
-            </div>
+        <div style={{ width: rightWidth, display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "center" }}>
+          {showPhoto && (
+            photo ? (
+              <div style={{ border: "1.5px solid #c00", padding: "2px", backgroundColor: "#fff", marginBottom: "3px" }}>
+                <img src={photo} alt="" style={{ width: isLandscape ? 50 : 44, height: isLandscape ? 60 : 54, objectFit: "cover", display: "block" }} />
+              </div>
+            ) : (
+              <div style={{ width: 44, height: 54, border: "1px dashed #999", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "7.0pt", marginBottom: "3px", color: "#666" }}>
+                Photo
+              </div>
+            )
           )}
           {marksheetNo && (
-            <div style={{ fontSize: "7.0pt", fontWeight: 900, textAlign: "right", color: "#000" }}>
+            <div style={{ fontSize: "6.8pt", fontWeight: 900, textAlign: "right", color: "#000", whiteSpace: "nowrap" }}>
               MARKSHEET NO. : <span style={{ fontWeight: 800 }}>{marksheetNo}</span>
             </div>
           )}
@@ -256,16 +266,17 @@ export function AnnualMainMarksheetPrint({
     lineHeight: 1.15
   };
 
-  const demoLabel = { fontSize: "7.2pt", fontWeight: 900, color: "#000" };
-  const demoVal = { fontSize: "7.2pt", fontWeight: 700, color: "#000" };
+  const demoLabel = { fontSize: "6.5pt", fontWeight: 900, color: "#000", lineHeight: 1.25 };
+  const demoVal = { fontSize: "6.5pt", fontWeight: 700, color: "#000", lineHeight: 1.25 };
 
   return (
-    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "200mm", maxHeight: "200mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
+    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "202mm", maxHeight: "202mm", p: 0, bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
           qr={qr}
           photo={student.photo}
+          showPhoto={true}
           marksheetNo={marksheetNo || student.marksheetNo || "PUBH26232445M43M"}
           subTitle="STATEMENT OF MARKS"
           isLandscape
@@ -507,7 +518,7 @@ export function SemesterProvisionalMarksheetPrint({
 
   const thStyle = {
     border: "1px solid #000",
-    padding: "3px 4px",
+    padding: "4px 4px",
     fontSize: "7.5pt",
     fontWeight: 900,
     textAlign: "center",
@@ -516,26 +527,27 @@ export function SemesterProvisionalMarksheetPrint({
 
   const tdStyle = {
     border: "1px solid #000",
-    padding: "3px 5px",
-    fontSize: "7.8pt",
-    lineHeight: 1.2
+    padding: "4.5px 5px",
+    fontSize: "7.6pt",
+    lineHeight: 1.25
   };
 
-  const demoLabel = { fontSize: "8pt", fontWeight: 900, color: "#000" };
-  const demoVal = { fontSize: "8pt", fontWeight: 700, color: "#000" };
+  const demoLabel = { fontSize: "6.8pt", fontWeight: 900, color: "#000", lineHeight: 1.3 };
+  const demoVal = { fontSize: "6.8pt", fontWeight: 700, color: "#000", lineHeight: 1.3 };
 
   return (
-    <Box className="marksheet-page marksheet-portrait" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
+    <Box className="marksheet-page marksheet-portrait" sx={{ width: "100%", maxWidth: "210mm", height: "290mm", maxHeight: "290mm", p: 0, bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape={false}>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
           subTitle="STATEMENT OF GRADE"
+          showPhoto={false}
           isLandscape={false}
         />
 
         {/* DEMOGRAPHICS GRID */}
-        <Box sx={{ mb: 1, px: 0.5 }}>
-          <Grid container spacing={1}>
+        <Box sx={{ mb: 0.8, px: 0.5 }}>
+          <Grid container spacing={0.8}>
             <Grid item xs={6}>
               <Typography sx={demoLabel}>ENROLLMENT NO. : <span style={demoVal}>{fmt(student.enrolmentno || student.regno)}</span></Typography>
               <Typography sx={demoLabel}>NAME : <span style={demoVal}>{fmt(student.name)}</span></Typography>
@@ -703,15 +715,16 @@ export function AnnualProvisionalMarksheetPrint({
     lineHeight: 1.15
   };
 
-  const demoLabel = { fontSize: "7.5pt", fontWeight: 900, color: "#000" };
-  const demoVal = { fontSize: "7.5pt", fontWeight: 700, color: "#000" };
+  const demoLabel = { fontSize: "6.5pt", fontWeight: 900, color: "#000", lineHeight: 1.25 };
+  const demoVal = { fontSize: "6.5pt", fontWeight: 700, color: "#000", lineHeight: 1.25 };
 
   return (
-    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "200mm", maxHeight: "200mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
+    <Box className="marksheet-page marksheet-landscape" sx={{ width: "100%", maxWidth: "297mm", height: "202mm", maxHeight: "202mm", p: 0, bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
       <MarksheetSecurityFrame isLandscape>
         <UniversityHeader
           logo={institution.logolink || institution.logo}
           subTitle="STATEMENT OF MARKS - PROVISIONAL"
+          showPhoto={false}
           isLandscape
         />
 
@@ -903,7 +916,7 @@ export function SemesterMainMarksheetPrint({
 
   const thStyle = {
     border: "1px solid #000",
-    padding: "3px 4px",
+    padding: "4px 4px",
     fontSize: "7.5pt",
     fontWeight: 900,
     textAlign: "center",
@@ -912,325 +925,156 @@ export function SemesterMainMarksheetPrint({
 
   const tdStyle = {
     border: "1px solid #000",
-    padding: "3px 5px",
-    fontSize: "7.8pt",
-    lineHeight: 1.2
+    padding: "4.5px 5px",
+    fontSize: "7.6pt",
+    lineHeight: 1.25
   };
 
-  const demoLabel = { fontSize: "8pt", fontWeight: 900, color: "#000" };
-  const demoVal = { fontSize: "8pt", fontWeight: 700, color: "#000" };
+  const demoLabel = { fontSize: "6.8pt", fontWeight: 900, color: "#000", lineHeight: 1.3 };
+  const demoVal = { fontSize: "6.8pt", fontWeight: 700, color: "#000", lineHeight: 1.3 };
 
   return (
-    <Box className="semester-main-sheet-wrapper">
-      {/* ================= PAGE 1 (FRONT) ================= */}
-      <Box className="marksheet-page marksheet-portrait marksheet-page-front" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "2mm", bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
-        <MarksheetSecurityFrame isLandscape={false}>
-          <UniversityHeader
-            logo={institution.logolink || institution.logo}
-            qr={qr}
-            photo={student.photo}
-            marksheetNo={marksheetNo || student.marksheetNo || "PUBH26582985Y05M"}
-            subTitle="STATEMENT OF MARKS"
-            isLandscape={false}
-          />
+    <Box className="marksheet-page marksheet-portrait" sx={{ width: "100%", maxWidth: "210mm", height: "290mm", maxHeight: "290mm", p: 0, bgcolor: "#fff", boxSizing: "border-box", overflow: "hidden" }}>
+      <MarksheetSecurityFrame isLandscape={false}>
+        <UniversityHeader
+          logo={institution.logolink || institution.logo}
+          qr={qr}
+          photo={student.photo}
+          showPhoto={true}
+          marksheetNo={marksheetNo || student.marksheetNo || "PUBH26582985Y05M"}
+          subTitle="STATEMENT OF MARKS"
+          isLandscape={false}
+        />
 
-          {/* DEMOGRAPHICS */}
-          <Box sx={{ mb: 0.8, px: 0.5 }}>
-            <Grid container spacing={0.8}>
-              <Grid item xs={6}>
-                <Typography sx={demoLabel}>ENROLLMENT NO. : <span style={demoVal}>{fmt(student.enrolmentno || student.regno)}</span></Typography>
-                <Typography sx={demoLabel}>NAME : <span style={demoVal}>{fmt(student.name)}</span></Typography>
-                <Typography sx={demoLabel}>FATHER'S NAME : <span style={demoVal}>{fmt(student.fathername)}</span></Typography>
-                <Typography sx={demoLabel}>MOTHER'S NAME : <span style={demoVal}>{fmt(student.mothername)}</span></Typography>
-                <Typography sx={demoLabel}>INST. / FACULTY : <span style={demoVal}>{fmt(student.institute || institution.name || "SCHOOL OF RESEARCH & TECHNOLOGY, BHOPAL")}</span></Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography sx={demoLabel}>PROGRAM : <span style={demoVal}>{fmt(student.program || "DIPLOMA IN ENGINEERING")}</span></Typography>
-                <Typography sx={demoLabel}>BRANCH / SPL. : <span style={demoVal}>{fmt(student.branchname || "COMPUTER SCIENCE ENGINEERING")}</span></Typography>
-                <Typography sx={demoLabel}>SEMESTER : <span style={demoVal}>{fmt(student.semester || "FIFTH")}</span></Typography>
-                <Typography sx={demoLabel}>EXAMINATION : <span style={demoVal}>{fmt(student.exam || "MAY-2026")}</span></Typography>
-                <Typography sx={demoLabel}>STATUS : <span style={demoVal}>{fmt(student.status || "REGULAR")}</span></Typography>
-              </Grid>
+        {/* DEMOGRAPHICS */}
+        <Box sx={{ mb: 0.8, px: 0.5 }}>
+          <Grid container spacing={0.8}>
+            <Grid item xs={6}>
+              <Typography sx={demoLabel}>ENROLLMENT NO. : <span style={demoVal}>{fmt(student.enrolmentno || student.regno)}</span></Typography>
+              <Typography sx={demoLabel}>NAME : <span style={demoVal}>{fmt(student.name)}</span></Typography>
+              <Typography sx={demoLabel}>FATHER'S NAME : <span style={demoVal}>{fmt(student.fathername)}</span></Typography>
+              <Typography sx={demoLabel}>MOTHER'S NAME : <span style={demoVal}>{fmt(student.mothername)}</span></Typography>
+              <Typography sx={demoLabel}>INST. / FACULTY : <span style={demoVal}>{fmt(student.institute || institution.name || "SCHOOL OF RESEARCH & TECHNOLOGY, BHOPAL")}</span></Typography>
             </Grid>
-          </Box>
+            <Grid item xs={6}>
+              <Typography sx={demoLabel}>PROGRAM : <span style={demoVal}>{fmt(student.program || "DIPLOMA IN ENGINEERING")}</span></Typography>
+              <Typography sx={demoLabel}>BRANCH / SPL. : <span style={demoVal}>{fmt(student.branchname || "COMPUTER SCIENCE ENGINEERING")}</span></Typography>
+              <Typography sx={demoLabel}>SEMESTER : <span style={demoVal}>{fmt(student.semester || "FIFTH")}</span></Typography>
+              <Typography sx={demoLabel}>EXAMINATION : <span style={demoVal}>{fmt(student.exam || "MAY-2026")}</span></Typography>
+              <Typography sx={demoLabel}>STATUS : <span style={demoVal}>{fmt(student.status || "REGULAR")}</span></Typography>
+            </Grid>
+          </Grid>
+        </Box>
 
-          {/* TABLE */}
-          <Box sx={{ width: "100%", mb: 0.8 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
-              <thead>
-                <tr>
-                  <th rowSpan={2} style={{ ...thStyle, width: "16%" }}>PAPER CODE</th>
-                  <th rowSpan={2} style={{ ...thStyle, width: "48%", textAlign: "left", pl: 1 }}>NAME OF PAPER</th>
-                  <th colSpan={4} style={{ ...thStyle, width: "22%" }}>CREDITS</th>
-                  <th colSpan={2} style={{ ...thStyle, width: "14%" }}>GRADE</th>
+        {/* TABLE */}
+        <Box sx={{ width: "100%", mb: 0.8 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
+            <thead>
+              <tr>
+                <th rowSpan={2} style={{ ...thStyle, width: "16%" }}>PAPER CODE</th>
+                <th rowSpan={2} style={{ ...thStyle, width: "48%", textAlign: "left", pl: 1 }}>NAME OF PAPER</th>
+                <th colSpan={4} style={{ ...thStyle, width: "22%" }}>CREDITS</th>
+                <th colSpan={2} style={{ ...thStyle, width: "14%" }}>GRADE</th>
+              </tr>
+              <tr>
+                <th colSpan={2} style={thStyle}>ALLOTED</th>
+                <th colSpan={2} style={thStyle}>EARNED</th>
+                <th style={{ ...thStyle, width: "7%" }}>T</th>
+                <th style={{ ...thStyle, width: "7%" }}>P</th>
+              </tr>
+              <tr style={{ bgcolor: "#f3f4f6" }}>
+                <th style={thStyle}></th>
+                <th style={thStyle}></th>
+                <th style={{ ...thStyle, width: "5.5%" }}>T</th>
+                <th style={{ ...thStyle, width: "5.5%" }}>P</th>
+                <th style={{ ...thStyle, width: "5.5%" }}>T</th>
+                <th style={{ ...thStyle, width: "5.5%" }}>P</th>
+                <th style={thStyle}></th>
+                <th style={thStyle}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {mergedCourses.map((c, i) => (
+                <tr key={i}>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(c.papercode)}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(c.papername)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsOff)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsOff)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsEarned)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsEarned)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.theoryGrade)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.practicalGrade)}</td>
                 </tr>
-                <tr>
-                  <th colSpan={2} style={thStyle}>ALLOTED</th>
-                  <th colSpan={2} style={thStyle}>EARNED</th>
-                  <th style={{ ...thStyle, width: "7%" }}>T</th>
-                  <th style={{ ...thStyle, width: "7%" }}>P</th>
-                </tr>
-                <tr style={{ bgcolor: "#f3f4f6" }}>
-                  <th style={thStyle}></th>
-                  <th style={thStyle}></th>
-                  <th style={{ ...thStyle, width: "5.5%" }}>T</th>
-                  <th style={{ ...thStyle, width: "5.5%" }}>P</th>
-                  <th style={{ ...thStyle, width: "5.5%" }}>T</th>
-                  <th style={{ ...thStyle, width: "5.5%" }}>P</th>
-                  <th style={thStyle}></th>
-                  <th style={thStyle}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {mergedCourses.map((c, i) => (
-                  <tr key={i}>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(c.papercode)}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{fmt(c.papername)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsOff)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsOff)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.theoryCreditsEarned)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>{fmt(c.practicalCreditsEarned)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.theoryGrade)}</td>
-                    <td style={{ ...tdStyle, textAlign: "center", fontWeight: 800 }}>{fmt(c.practicalGrade)}</td>
-                  </tr>
+              ))}
+              <tr>
+                <td colSpan={8} style={{ ...tdStyle, textAlign: "center", fontStyle: "italic", fontWeight: 700 }}>
+                  ***End of Statement***
+                </td>
+              </tr>
+              {/* SUMMARY ROW */}
+              <tr style={{ bgcolor: "#f9fafb", fontWeight: 900 }}>
+                <td colSpan={2} style={{ ...tdStyle, fontWeight: 900 }}>
+                  RESULT : <span style={{ color: student.result === "FAIL" ? "#c00" : "#000" }}>{fmt(student.result || "PASS")}</span>
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SGPA : {fmt(student.sgpa || "7.00")}
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TOTAL
+                </td>
+                <td colSpan={2} style={{ ...tdStyle, textAlign: "center", fontWeight: 900 }}>{totalAllotted}</td>
+                <td colSpan={2} style={{ ...tdStyle, textAlign: "center", fontWeight: 900 }}>{totalEarned}</td>
+                <td colSpan={2} style={tdStyle}></td>
+              </tr>
+            </tbody>
+          </table>
+        </Box>
+
+        {/* CONSOLIDATED */}
+        <Box sx={{ width: "100%", mb: 0.8 }}>
+          <Typography sx={{ fontSize: "8pt", fontWeight: 900, textAlign: "center", mb: 0.2 }}>CONSOLIDATED</Typography>
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
+            <thead>
+              <tr style={{ bgcolor: "#f3f4f6" }}>
+                <th style={{ ...thStyle, width: "16%" }}>SEMESTER</th>
+                {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((s) => (
+                  <th key={s} style={{ ...thStyle, width: "10.5%" }}>{s}</th>
                 ))}
-                <tr>
-                  <td colSpan={8} style={{ ...tdStyle, textAlign: "center", fontStyle: "italic", fontWeight: 700 }}>
-                    ***End of Statement***
-                  </td>
-                </tr>
-                {/* SUMMARY ROW */}
-                <tr style={{ bgcolor: "#f9fafb", fontWeight: 900 }}>
-                  <td colSpan={2} style={{ ...tdStyle, fontWeight: 900 }}>
-                    RESULT : <span style={{ color: student.result === "FAIL" ? "#c00" : "#000" }}>{fmt(student.result || "PASS")}</span>
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SGPA : {fmt(student.sgpa || "7.00")}
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TOTAL
-                  </td>
-                  <td colSpan={2} style={{ ...tdStyle, textAlign: "center", fontWeight: 900 }}>{totalAllotted}</td>
-                  <td colSpan={2} style={{ ...tdStyle, textAlign: "center", fontWeight: 900 }}>{totalEarned}</td>
-                  <td colSpan={2} style={tdStyle}></td>
-                </tr>
-              </tbody>
-            </table>
-          </Box>
-
-          {/* CONSOLIDATED */}
-          <Box sx={{ width: "100%", mb: 0.8 }}>
-            <Typography sx={{ fontSize: "8pt", fontWeight: 900, textAlign: "center", mb: 0.2 }}>CONSOLIDATED</Typography>
-            <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #000" }}>
-              <thead>
-                <tr style={{ bgcolor: "#f3f4f6" }}>
-                  <th style={{ ...thStyle, width: "16%" }}>SEMESTER</th>
-                  {["I", "II", "III", "IV", "V", "VI", "VII", "VIII"].map((s) => (
-                    <th key={s} style={{ ...thStyle, width: "10.5%" }}>{s}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>EXAM</td>
-                  {semHistory.map((h, i) => (
-                    <td key={i} style={{ ...tdStyle, textAlign: "center" }}>{fmt(h.exam)}</td>
-                  ))}
-                </tr>
-                <tr>
-                  <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>RESULT/SGPA</td>
-                  {semHistory.map((h, i) => (
-                    <td key={i} style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(h.result)}</td>
-                  ))}
-                </tr>
-                <tr style={{ bgcolor: "#f9fafb" }}>
-                  <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>CGPA : {fmt(student.cgpa || "-")}</td>
-                  <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>RESULT : {fmt(student.result || "-")}</td>
-                  <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>DIVISION : {fmt(student.division || "-")}</td>
-                </tr>
-              </tbody>
-            </table>
-          </Box>
-
-          {/* SIGNATURES */}
-          <Box sx={{ mt: "auto", pt: 0.5, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "8pt", fontWeight: 900 }}>
-            <Box>
-              <div>PREPARED BY : ____________________</div>
-              <div style={{ marginTop: 6 }}>ISSUE DATE : <span style={{ fontWeight: 800 }}>{issueDate || new Date().toLocaleDateString("en-GB")}</span></div>
-            </Box>
-            <Box>
-              <div>CHECKED BY : 1. ____________________</div>
-              <div style={{ marginTop: 6, paddingLeft: 72 }}>2. ____________________</div>
-            </Box>
-            <Box sx={{ textAlign: "right" }}>
-              <div>CONTROLLER OF EXAMINATIONS</div>
-            </Box>
-          </Box>
-        </MarksheetSecurityFrame>
-      </Box>
-
-      {/* ================= PAGE 2 (BACK: PARAMETERS APPLICABLE) ================= */}
-      <Box className="marksheet-page marksheet-portrait marksheet-page-back" sx={{ width: "100%", maxWidth: "210mm", height: "284mm", maxHeight: "284mm", p: "8mm 12mm", bgcolor: "#fff", boxSizing: "border-box", color: "#000", border: "1px solid #ccc", mt: { xs: 2, md: 3 }, overflow: "hidden" }}>
-        <Typography sx={{ textAlign: "center", fontSize: "14pt", fontWeight: 900, textDecoration: "underline", mb: 2 }}>
-          Parameters Applicable
-        </Typography>
-
-        <Box sx={{ fontSize: "8.5pt", lineHeight: 1.45, mb: 1.5 }}>
-          <Typography sx={{ fontSize: "8.5pt", mb: 0.8, fontStyle: "italic" }}>
-            1. In case of any error in the Gradesheet, please refer it back to the Controller of Examinations, People's University within 10 days along with the original Gradesheet, from the issue date of gradesheet.
-          </Typography>
-          <Typography sx={{ fontSize: "8.5pt", mb: 0.8, fontStyle: "italic" }}>
-            2. Revaluation shall be allowed in Theory papers only.
-          </Typography>
-          <Typography sx={{ fontSize: "8.5pt", mb: 0.3, fontStyle: "italic" }}>
-            3. (#) Indicates Pass by Grace in the subject/paper.<br />
-            (&gt;&gt;) Indicates Carried forward.<br />
-            (Ø) Indicates Cancelled under Unfair Means (UFM).<br />
-            (F) Indicates Fail in the subject/paper.
-          </Typography>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>EXAM</td>
+                {semHistory.map((h, i) => (
+                  <td key={i} style={{ ...tdStyle, textAlign: "center" }}>{fmt(h.exam)}</td>
+                ))}
+              </tr>
+              <tr>
+                <td style={{ ...tdStyle, fontWeight: 800, textAlign: "center" }}>RESULT/SGPA</td>
+                {semHistory.map((h, i) => (
+                  <td key={i} style={{ ...tdStyle, textAlign: "center", fontWeight: 700 }}>{fmt(h.result)}</td>
+                ))}
+              </tr>
+              <tr style={{ bgcolor: "#f9fafb" }}>
+                <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>CGPA : {fmt(student.cgpa || "-")}</td>
+                <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>RESULT : {fmt(student.result || "-")}</td>
+                <td colSpan={3} style={{ ...tdStyle, fontWeight: 900 }}>DIVISION : {fmt(student.division || "-")}</td>
+              </tr>
+            </tbody>
+          </table>
         </Box>
 
-        <Typography sx={{ fontSize: "8.5pt", fontWeight: 700, mb: 0.5, fontStyle: "italic" }}>
-          4. Grade and their numeric equivalent :
-        </Typography>
-
-        {/* GRADE TABLE */}
-        <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #555", fontSize: "7.8pt", marginBottom: 8 }}>
-          <thead>
-            <tr style={{ bgcolor: "#f9fafb" }}>
-              <th style={{ border: "1px solid #555", padding: "4px 6px", width: "9%", textAlign: "center" }}>Grade</th>
-              <th style={{ border: "1px solid #555", padding: "4px 6px", width: "11%", textAlign: "center" }}>%Marks</th>
-              <th style={{ border: "1px solid #555", padding: "4px 6px", width: "10%", textAlign: "center" }}>*Grade Point</th>
-              <th style={{ border: "1px solid #555", padding: "4px 6px", width: "16%", textAlign: "center" }}>Description of Performance</th>
-              <th style={{ border: "1px solid #555", padding: "4px 6px", width: "54%", textAlign: "center" }}>Remark</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>A<sup>+</sup></td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>91-100</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>10</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Outstanding</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>M.Tech, M.Pharm, MBA, MBA{`{HA}`}, MHM, M.Sc, M.Stat., B.Tech, B.Sc, B.Sc{`{H}`}, BHMCT, B.Pharm, BHM, BBA, BA, BA{`{H}`}, B.Com, B.Com{`{H}`}, B.Com{`{A/F}`}, DE</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>A</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>81-90</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>9</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Excellent</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>-do-</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>B<sup>+</sup></td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>71-80</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>8</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Very Good</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>-do-</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>B</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>61-70</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>7</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Good</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>-do-</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>C<sup>+</sup></td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>51-60</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>6</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Average</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>-do-</td>
-            </tr>
-            <tr>
-              <td rowSpan={2} style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>C</td>
-              <td rowSpan={2} style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>41-50</td>
-              <td rowSpan={2} style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>5</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Satisfactory</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>M.Pharm, MBA, MBA{`{HA}`}, MHM, M.Sc, M.Stat., B.Tech, B.Sc, B.Sc{`{H}`}, B.Pharm, BHM, BBA, BA, BA{`{H}`}, B.Com, B.Com{`{H}`}, B.Com{`{A/F}`}</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Marginal</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>M.Tech, DE</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>D</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>35-40</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>4</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Pass</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>MBA, MBA{`{HA}`}, MHM, BHM, B.Com, B.Com{`{H}`}, B.Com{`{A/F}`}</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>D</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>40 Only</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>4</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Pass</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>M.Tech, M.Pharm, M.Sc, M.Stat., B.Tech, B.Sc, B.Sc{`{H}`}, BHMCT, B.Pharm, BA, BA{`{H}`}, DE</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>F</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Below 40</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>0</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Fail</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>M.Tech, M.Pharm, M.Sc, M.Stat., B.Tech, B.Sc, B.Sc{`{H}`}, BHMCT, B.Pharm, BA, BA{`{H}`}, DE</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>F</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Below 35</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>0</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Fail</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>MBA, MBA{`{HA}`}, MHM, BHM, B.Com, B.Com{`{H}`}, B.Com{`{A/F}`}</td>
-            </tr>
-            <tr>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center", fontWeight: 800 }}>W</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>-</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>0</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px", textAlign: "center" }}>Withheld</td>
-              <td style={{ border: "1px solid #555", padding: "3px 6px" }}>B.Tech, DE</td>
-            </tr>
-          </tbody>
-        </table>
-        <Typography sx={{ fontSize: "7.2pt", fontStyle: "italic", mb: 2 }}>
-          *Based on absolute marking system rounded to nearest integer.
-        </Typography>
-
-        {/* FORMULAS */}
-        <Box sx={{ fontSize: "8.2pt", lineHeight: 1.4 }}>
-          <Typography sx={{ fontSize: "8.2pt", fontStyle: "italic", mb: 0.5 }}>
-            5. The Semester Grade Point Average (SGPA) is calculated as under:-
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3, my: 1, pl: 2 }}>
-            <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, fontStyle: "italic" }}>
-              <span>SGPA =</span>
-              <Box sx={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-                <span style={{ borderBottom: "1px solid #000", paddingBottom: 2 }}>&sum;<sub>i=1</sub><sup>n</sup> C<sub>i</sub>P<sub>i</sub></span>
-                <span>&sum;<sub>i=1</sub><sup>n</sup> C<sub>i</sub></span>
-              </Box>
-            </Box>
-            <Typography sx={{ fontSize: "7.8pt", fontStyle: "italic" }}>
-              Where Ci is the number of credits offered in the ith subject of a Semester for which SGPA is to be calculated, Pi is the corresponding grade earned in the ith subject and n is number of subject in the semester.
-            </Typography>
+        {/* SIGNATURES */}
+        <Box sx={{ mt: "auto", pt: 0.5, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "8pt", fontWeight: 900 }}>
+          <Box>
+            <div>PREPARED BY : ____________________</div>
+            <div style={{ marginTop: 6 }}>ISSUE DATE : <span style={{ fontWeight: 800 }}>{issueDate || new Date().toLocaleDateString("en-GB")}</span></div>
           </Box>
-
-          <Typography sx={{ fontSize: "8.2pt", fontStyle: "italic", mt: 1.5, mb: 0.5 }}>
-            6. The Cumulative Grade Point Average (CGPA) is calculated as under:
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3, my: 1, pl: 2 }}>
-            <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, fontStyle: "italic" }}>
-              <span>CGPA =</span>
-              <Box sx={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-                <span style={{ borderBottom: "1px solid #000", paddingBottom: 2 }}>&sum;<sub>j=1</sub><sup>m</sup> SG<sub>j</sub>NC<sub>j</sub></span>
-                <span>&sum;<sub>j=1</sub><sup>m</sup> NC<sub>j</sub></span>
-              </Box>
-            </Box>
-            <Typography sx={{ fontSize: "7.8pt", fontStyle: "italic" }}>
-              Where SGj is SGPA earned in the jth semester, NCj is total credit allotted to the jth semester and m is the number of semester till which CGPA is calculated.
-            </Typography>
+          <Box>
+            <div>CHECKED BY : 1. ____________________</div>
+            <div style={{ marginTop: 6, paddingLeft: 72 }}>2. ____________________</div>
           </Box>
-
-          <Typography sx={{ fontSize: "8.2pt", fontStyle: "italic", mt: 1.5, mb: 0.5 }}>
-            7. The conversion from CGPA to equivalent percentage is calculated as under :
-          </Typography>
-          <Typography sx={{ fontSize: "8.2pt", fontStyle: "italic", pl: 2, fontWeight: 700 }}>
-            Equivalent percentage marks = CGPA obtained x 10.
-          </Typography>
+          <Box sx={{ textAlign: "right" }}>
+            <div>CONTROLLER OF EXAMINATIONS</div>
+          </Box>
         </Box>
-      </Box>
+      </MarksheetSecurityFrame>
     </Box>
   );
 }
@@ -1283,7 +1127,7 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
         <style>
           @page {
             size: ${isLandscape ? "A4 landscape" : "A4 portrait"};
-            margin: 3mm;
+            margin: 2mm 3mm;
           }
           * {
             box-sizing: border-box !important;
@@ -1297,16 +1141,18 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             padding: 0 !important;
             background: #fff !important;
             width: 100% !important;
+            height: 100% !important;
             max-width: 100% !important;
           }
           .marksheet-page {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 auto !important;
+            padding: 0 !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
-            page-break-before: always !important;
-            break-before: page !important;
+            page-break-before: avoid !important;
+            break-before: avoid !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
             page-break-inside: avoid !important;
@@ -1314,26 +1160,12 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             background: #fff !important;
           }
           .marksheet-portrait {
-            height: 284mm !important;
-            max-height: 284mm !important;
+            height: 290mm !important;
+            max-height: 290mm !important;
           }
           .marksheet-landscape {
-            height: 200mm !important;
-            max-height: 200mm !important;
-          }
-          .marksheet-page:first-of-type {
-            page-break-before: avoid !important;
-            break-before: avoid !important;
-          }
-          .marksheet-page-front {
-            page-break-after: always !important;
-            break-after: page !important;
-          }
-          .marksheet-page-back {
-            page-break-before: always !important;
-            break-before: page !important;
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+            height: 202mm !important;
+            max-height: 202mm !important;
           }
           .marksheet-security-frame {
             position: relative !important;
@@ -1342,9 +1174,10 @@ export function printMarksheetDoc(elementId, isLandscape = false) {
             box-sizing: border-box !important;
             border: 3px double #135497 !important;
             outline: 1px solid #135497 !important;
-            outline-offset: -6px !important;
+            outline-offset: -4px !important;
             overflow: hidden !important;
             background-color: #fff !important;
+            padding: 6px 8px !important;
           }
           .marksheet-watermark {
             position: absolute !important;
